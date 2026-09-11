@@ -236,7 +236,7 @@ struct CalendarTabView: View {
                     // Kalendářní mřížka
                     ScrollView {
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 7), spacing: 12) {
-                            ForEach(daysInMonth(), id: \.self) { day in
+                            ForEach(Array(daysInMonth().enumerated()), id: \.offset) { _, day in
                                 dayCell(for: day)
                             }
                         }
@@ -287,7 +287,7 @@ struct CalendarTabView: View {
     // Header s dny v týdnu
     private var weekdayHeaderView: some View {
         HStack(spacing: 8) {
-            ForEach(weekdaySymbols, id: \.self) { symbol in
+            ForEach(Array(weekdaySymbols.enumerated()), id: \.offset) { _, symbol in
                 Text(symbol)
                     .font(.caption.weight(.medium))
                     .foregroundStyle(.secondary)
