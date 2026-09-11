@@ -19,25 +19,21 @@ struct BottomNavBar: View {
     var body: some View {
         barContent
             .padding(.horizontal, 24)
+            .padding(.top, 30) // rezerva nad barem pro vyvýšené plusko
             .padding(.bottom, 6)
     }
 
     @ViewBuilder
     private var barContent: some View {
-        if #available(iOS 26, *) {
-            GlassEffectContainer(spacing: 22) {
-                ZStack {
-                    itemsRow
-                        .padding(.vertical, 10)
-                        .padding(.horizontal, 18)
-                        .glassEffect(.regular, in: Capsule())
-
-                    AddButton(action: onAdd)
-                        .offset(y: -16) // vyvýšení nad bar
-                }
-            }
-        } else {
-            ZStack {
+        // Bar i plusko jsou SAMOSTATNÉ sklo (žádný GlassEffectContainer),
+        // aby tint pluska nevtékal do baru.
+        ZStack {
+            if #available(iOS 26, *) {
+                itemsRow
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 18)
+                    .glassEffect(.regular, in: Capsule())
+            } else {
                 itemsRow
                     .padding(.vertical, 10)
                     .padding(.horizontal, 18)
@@ -48,10 +44,10 @@ struct BottomNavBar: View {
                         in: Capsule()
                     )
                     .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
-
-                AddButton(action: onAdd)
-                    .offset(y: -16)
             }
+
+            AddButton(action: onAdd)
+                .offset(y: -22) // vyvýšení nad bar
         }
     }
 

@@ -47,10 +47,13 @@ struct ContentView: View {
                                 .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 4, trailing: 16))
 
                             ForEach(items) { item in
-                                NavigationLink(value: item) {
-                                    TrackedItemCardView(item: item)
-                                }
-                                .buttonStyle(.plain) // Potlačí automatický chevron NavigationLink
+                                TrackedItemCardView(item: item)
+                                    .overlay {
+                                        // Neviditelný NavigationLink — řádek není disclosure-row,
+                                        // takže se neukáže systémová šipka (vlastní šipka je v kartě).
+                                        NavigationLink(value: item) { EmptyView() }
+                                            .opacity(0)
+                                    }
                                 .listRowSeparator(.hidden)
                                 .listRowBackground(Color.clear)
                                 .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
