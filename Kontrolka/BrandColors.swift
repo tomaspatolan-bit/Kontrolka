@@ -108,8 +108,28 @@ extension Color {
         })
     }
     
+    // MARK: - Surface Tokens (Figma: Surface/CardBase)
+
+    /// Pozadí karet a widgetů (světle béžová)
+    static var surfaceCardBase: Color {
+        Color(uiColor: UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? Self.color(from: "#2A2320") // prozatímní dark, dořeší se později
+                : Self.color(from: "#F2EAE0")
+        })
+    }
+
+    // MARK: - Gradient Tokens (Figma: Gradient/Edge, Gradient/Core)
+    //  Dark mode se dořeší později — zatím jen light hodnoty.
+
+    /// Světlý okraj brand gradientu (broskvová)
+    static var gradientEdge: Color { Color(hex: "#F7E5CC") }
+
+    /// Sytý střed brand gradientu (terakota)
+    static var gradientCore: Color { Color(hex: "#D68C55") }
+
     // MARK: - Helper Method
-    
+
     /// Konverze hex stringu (#RRGGBB) na UIColor
     private static func color(from hex: String) -> UIColor {
         var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -148,75 +168,29 @@ extension View {
 
 struct BrandGradientBackground: View {
     @Environment(\.colorScheme) private var colorScheme
-    
+
     var body: some View {
-        if #available(iOS 18, *) {
-            // iOS 18+: Nativní MeshGradient
-            linearGradientFallback
-        } else {
-            // iOS 17: Fallback na pětibodový LinearGradient
-            linearGradientFallback
-        }
-    }
-    
-    // MARK: - iOS 18+ MeshGradient
-    @available(iOS 18, *)
-    private var meshGradientBackground: some View {
-        MeshGradient(
-            width: 3,
-            height: 3,
-            points: [
-                [0, 0],   [0.5, 0],   [1, 0],
-                [0, 0.5], [0.5, 0.5], [1, 0.5],
-                [0, 1],   [0.5, 1],   [1, 1]
-            ],
-            colors: colorScheme == .dark ? darkMeshColors : lightMeshColors,
-            smoothsColors: true
-        )
-    }
-    
-    // Light mode mesh colors (9 bodů)
-    @available(iOS 18, *)
-    private var lightMeshColors: [Color] {
-        [
-            Color(hex: "#FFD27A"), Color(hex: "#FF9F55"), Color(hex: "#FF7A6B"),
-            Color(hex: "#FFB25E"), Color(hex: "#F2637F"), Color(hex: "#E85C9C"),
-            Color(hex: "#E8873D"), Color(hex: "#C1503D"), Color(hex: "#8B4A8F")
-        ]
-    }
-    
-    // Dark mode mesh colors (9 bodů)
-    @available(iOS 18, *)
-    private var darkMeshColors: [Color] {
-        [
-            Color(hex: "#4A2545"), Color(hex: "#6B2F3D"), Color(hex: "#7A3A2E"),
-            Color(hex: "#5C2A4F"), Color(hex: "#8B3A4A"), Color(hex: "#8F4A2E"),
-            Color(hex: "#3A1F3D"), Color(hex: "#5C2A2E"), Color(hex: "#2E1A2E")
-        ]
-    }
-    
-    // MARK: - iOS 17 LinearGradient Fallback
-    private var linearGradientFallback: some View {
         LinearGradient(
-            colors: colorScheme == .dark ? darkLinearColors : lightLinearColors,
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
+            gradient: colorScheme == .dark ? darkGradient : lightGradient,
+            startPoint: .top,
+            endPoint: .bottom
         )
     }
-    
-    // Light mode linear colors (5 bodů)
-    private var lightLinearColors: [Color] {
-        [
-            Color(hex: "#FFD27A"), Color(hex: "#FF9F55"),
-            Color(hex: "#F2637A"), Color(hex: "#E85C9C"), Color(hex: "#8B4A8F")
-        ]
+
+    // Light mode: Figma tokeny Gradient/Edge → Core (40 %) → Edge
+    private var lightGradient: Gradient {
+        Gradient(stops: [
+            .init(color: .gradientEdge, location: 0.0),
+            .init(color: .gradientCore, location: 0.4),
+            .init(color: .gradientEdge, location: 1.0)
+        ])
     }
-    
-    // Dark mode linear colors (5 bodů)
-    private var darkLinearColors: [Color] {
-        [
+
+    // Dark mode: prozatímní hodnoty, dořeší se později (viz CLAUDE.md)
+    private var darkGradient: Gradient {
+        Gradient(colors: [
             Color(hex: "#4A2545"), Color(hex: "#6B2F3D"),
             Color(hex: "#8B3A4A"), Color(hex: "#8F4A2E"), Color(hex: "#3A1F3D")
-        ]
+        ])
     }
 }

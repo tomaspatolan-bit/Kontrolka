@@ -12,13 +12,14 @@ enum Category: String, Codable, CaseIterable {
     case vehicle = "Vozidlo"
     case insurance = "Pojištění"
     case homeMaintenance = "Domácnost"
+    case pet = "Mazlíček"
     case warranty = "Záruka"
     case document = "Doklad"
     case other = "Ostatní"
-    
+
     var defaultReminderDays: [Int] {
         switch self {
-        case .vehicle, .insurance, .homeMaintenance:
+        case .vehicle, .insurance, .homeMaintenance, .pet:
             return [30, 7, 1]
         case .warranty, .document, .other:
             return [7]

@@ -9,15 +9,15 @@ import SwiftUI
 import SwiftData
 
 enum AppTab: Hashable {
-    case list
+    case home
     case calendar
-    case placeholder
-    case settings
+    case overview
+    case profile
 }
 
 struct MainTabView: View {
     @Environment(\.modelContext) private var modelContext
-    @State private var selectedTab: AppTab = .list
+    @State private var selectedTab: AppTab = .home
     @State private var showingAddOptions = false
     @State private var showingCamera = false
     @State private var showingAddSheet = false
@@ -28,14 +28,14 @@ struct MainTabView: View {
             // Main content
             Group {
                 switch selectedTab {
-                case .list:
-                    ContentView()
+                case .home:
+                    DomuView()
                 case .calendar:
                     CalendarTabView()
-                case .placeholder:
-                    PlaceholderTabView()
-                case .settings:
-                    SettingsView()
+                case .overview:
+                    ContentView()
+                case .profile:
+                    ProfileView()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -91,47 +91,122 @@ struct MainTabView: View {
     }
 }
 
-// Placeholder pro Settings view
-struct SettingsView: View {
+// Profil (dle Figma sekce Navigace / Profil)
+struct ProfileView: View {
     var body: some View {
         NavigationStack {
             ZStack {
                 // Brand gradient jako nejspodnější vrstva
                 BrandGradientBackground()
                     .ignoresSafeArea()
-                
-                // List na vrchu
-                List {
-                    Section {
-                        HStack {
-                            Text("Verze")
-                            Spacer()
-                            Text("1.0.0")
-                                .foregroundStyle(.secondary)
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 22) {
+                        ProfileSummaryCard()
+
+                        profileSection(title: "O APLIKACI") {
+                            ProfileRow(icon: "info.circle", title: "Verze", trailing: "1.0.0")
                         }
-                    } header: {
-                        Text("O aplikaci")
-                    }
-                    
-                    Section {
-                        Link(destination: URL(string: UIApplication.openSettingsURLString)!) {
-                            HStack {
-                                Label("Oprávnění", systemImage: "lock.shield")
-                                Spacer()
-                                Image(systemName: "arrow.up.right")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+
+                        profileSection(title: "SYSTÉM") {
+                            Link(destination: URL(string: UIApplication.openSettingsURLString)!) {
+                                ProfileRow(icon: "lock.shield", title: "Oprávnění", showsChevron: true)
                             }
+                            .buttonStyle(.plain)
                         }
-                    } header: {
-                        Text("Systém")
                     }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 12)
+                    .padding(.bottom, 130) // prostor pro plovoucí tab bar
                 }
-                .scrollContentBackground(.hidden) // Prosvítání brand gradientu
             }
-            .navigationTitle("Nastavení")
+            .navigationTitle("Profil")
             .toolbarBackground(.hidden, for: .navigationBar)
         }
+    }
+
+    @ViewBuilder
+    private func profileSection<Content: View>(
+        title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color.brandTextSecondary)
+                .padding(.leading, 4)
+            VStack(spacing: 8) {
+                content()
+            }
+        }
+    }
+}
+
+// Karta shrnutí profilu
+struct ProfileSummaryCard: View {
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle().fill(Color.brandAccent)
+                Image(systemName: "person.fill")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(Color.white)
+            }
+            .frame(width: 56, height: 56)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Kontrolka")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(Color.brandTextPrimary)
+                Text("Vaše termíny na jednom místě")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.brandTextSecondary)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(18)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.surfaceCardBase)
+        )
+    }
+}
+
+// Řádek v profilu
+struct ProfileRow: View {
+    let icon: String
+    let title: String
+    var trailing: String? = nil
+    var showsChevron: Bool = false
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 16))
+                .foregroundStyle(Color.brandAccent)
+                .frame(width: 24)
+            Text(title)
+                .font(.system(size: 16))
+                .foregroundStyle(Color.brandTextPrimary)
+            Spacer()
+            if let trailing {
+                Text(trailing)
+                    .font(.system(size: 15))
+                    .foregroundStyle(Color.brandTextSecondary)
+            }
+            if showsChevron {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.brandTextSecondary)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.surfaceCardBase)
+        )
     }
 }
 
@@ -378,29 +453,6 @@ struct DayItemsSheet: View {
         formatter.locale = Locale(identifier: "cs_CZ")
         formatter.dateFormat = "d. MMMM yyyy"
         return formatter.string(from: firstItem.dueDate)
-    }
-}
-
-// Placeholder tab (připraveno pro budoucí funkci)
-struct PlaceholderTabView: View {
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                // Brand gradient jako nejspodnější vrstva
-                BrandGradientBackground()
-                    .ignoresSafeArea()
-                
-                // Content na vrchu
-                ContentUnavailableView(
-                    "Připravujeme",
-                    systemImage: "sparkles",
-                    description: Text("Tato funkce bude dostupná v příští verzi")
-                )
-            }
-            .navigationTitle("Nové")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.hidden, for: .navigationBar)
-        }
     }
 }
 

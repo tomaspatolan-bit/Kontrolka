@@ -14,15 +14,15 @@ struct CustomTabBar: View {
     
     var body: some View {
         HStack(spacing: 0) {
-            // První dva taby (Seznam, Kalendář)
+            // První dva taby (Domů, Kalendář)
             TabBarButton(
-                tab: .list,
+                tab: .home,
                 selectedTab: $selectedTab,
-                icon: "list.bullet",
-                title: "Seznam",
+                icon: "house",
+                title: "Domů",
                 reduceTransparency: reduceTransparency
             )
-            
+
             TabBarButton(
                 tab: .calendar,
                 selectedTab: $selectedTab,
@@ -30,25 +30,25 @@ struct CustomTabBar: View {
                 title: "Kalendář",
                 reduceTransparency: reduceTransparency
             )
-            
+
             // Prostřední plusko - zarovnané doprostřed
             Spacer()
                 .frame(width: 80) // Prostor pro vystouplé tlačítko
-            
-            // Druhé dva taby (Placeholder, Nastavení)
+
+            // Druhé dva taby (Přehled, Profil)
             TabBarButton(
-                tab: .placeholder,
+                tab: .overview,
                 selectedTab: $selectedTab,
-                icon: "sparkles",
-                title: "Nové",
+                icon: "list.bullet",
+                title: "Přehled",
                 reduceTransparency: reduceTransparency
             )
-            
+
             TabBarButton(
-                tab: .settings,
+                tab: .profile,
                 selectedTab: $selectedTab,
-                icon: "gearshape.fill",
-                title: "Nastavení",
+                icon: "person",
+                title: "Profil",
                 reduceTransparency: reduceTransparency
             )
         }

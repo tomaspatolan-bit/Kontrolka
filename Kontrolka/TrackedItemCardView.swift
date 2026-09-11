@@ -15,6 +15,7 @@ extension Category {
         case .vehicle: return "car.fill"
         case .insurance: return "shield.fill"
         case .homeMaintenance: return "wrench.and.screwdriver.fill"
+        case .pet: return "pawprint.fill"
         case .warranty: return "checkmark.seal.fill"
         case .document: return "person.text.rectangle.fill"
         case .other: return "tray.fill"

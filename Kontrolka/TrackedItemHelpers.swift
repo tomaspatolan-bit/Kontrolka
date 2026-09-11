@@ -32,7 +32,38 @@ enum Urgency: Equatable {
     }
 }
 
+extension Category {
+    /// Název ilustrace v asset katalogu (nil = kategorie nemá vlastní ilustraci)
+    var illustrationName: String? {
+        switch self {
+        case .vehicle: return "IllustrationCar"
+        case .pet: return "IllustrationPet"
+        case .homeMaintenance: return "IllustrationHouse"
+        case .document: return "IllustrationDocuments"
+        case .other: return "IllustrationOther"
+        case .insurance, .warranty: return nil
+        }
+    }
+
+    /// Titulek widgetu na Domů (může se lišit od rawValue)
+    var widgetTitle: String {
+        switch self {
+        case .document: return "Doklady"
+        default: return rawValue
+        }
+    }
+}
+
 extension TrackedItem {
+    /// Kompaktní text termínu pro widgety ("za 5 dní", "zítra", "po termínu")
+    var shortDeadline: String {
+        let days = Calendar.current.dateComponents([.day], from: Date(), to: dueDate).day ?? 0
+        if days < 0 { return "po termínu" }
+        if days == 0 { return "dnes" }
+        if days == 1 { return "zítra" }
+        return "za \(days) dní"
+    }
+
     var urgency: Urgency {
         let daysRemaining = Calendar.current.dateComponents([.day], from: Date(), to: dueDate).day ?? 0
         
