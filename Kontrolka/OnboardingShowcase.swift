@@ -17,9 +17,9 @@ struct OnboardingShowcase: View {
         ZStack {
             // Vrstva 1: dashboard — kamera do něj najede a rozostří ho
             dashboard
-                .scaleEffect(run ? 2.1 : 1.0, anchor: UnitPoint(x: 0.72, y: 0.46))
+                .scaleEffect(run ? 2.1 : 1.0, anchor: UnitPoint(x: 0.75, y: 0.53))
                 .blur(radius: run ? 6 : 0)
-                .animation(.easeInOut(duration: 1.1), value: run)
+                .animation(.easeInOut(duration: 2.8), value: run)
 
             // Vrstva 2: detail Domácnost — odkryje se přes rozostřený dashboard
             detail
@@ -64,25 +64,25 @@ struct OnboardingShowcase: View {
                     .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(Color.brandTextPrimary)
             }
-            .modifier(Reveal(run: run, delay: 1.15))
+            .modifier(Reveal(run: run, delay: 3.2))
 
             heroCard
-                .modifier(Reveal(run: run, delay: 1.30))
+                .modifier(Reveal(run: run, delay: 3.5))
 
             Text("TERMÍNY")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.brandTextPrimary)
-                .modifier(Reveal(run: run, delay: 1.40))
+                .modifier(Reveal(run: run, delay: 3.8))
 
             VStack(spacing: 12) {
                 itemCard(title: "Kotel", date: "Revize za 18 dní", urgency: .warning)
                 itemCard(title: "Komín", date: "12. 6. 2027", urgency: .normal)
                 itemCard(title: "Střecha", date: "Pojistka - 3. 3. 2027", urgency: .normal)
             }
-            .modifier(Reveal(run: run, delay: 1.50))
+            .modifier(Reveal(run: run, delay: 4.1))
 
             addTermButton
-                .modifier(Reveal(run: run, delay: 1.60))
+                .modifier(Reveal(run: run, delay: 4.4))
 
             Spacer(minLength: 0)
         }
@@ -92,7 +92,7 @@ struct OnboardingShowcase: View {
         .background(
             BrandGradientBackground()
                 .opacity(run ? 1 : 0)
-                .animation(.easeOut(duration: 0.4).delay(1.0), value: run)
+                .animation(.easeOut(duration: 0.7).delay(2.9), value: run)
                 .ignoresSafeArea()
         )
         .opacity(run ? 1 : 0)
@@ -201,7 +201,7 @@ private struct Reveal: ViewModifier {
         content
             .opacity(run ? 1 : 0)
             .offset(y: run ? 0 : 18)
-            .animation(.timingCurve(0.16, 1, 0.3, 1, duration: 0.55).delay(delay), value: run)
+            .animation(.timingCurve(0.16, 1, 0.3, 1, duration: 0.8).delay(delay), value: run)
     }
 }
 

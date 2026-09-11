@@ -70,13 +70,14 @@ struct OnboardingView: View {
     // MARK: - 2. Hodnota / Notifikace
 
     private var valueStep: some View {
-        ZStack(alignment: .bottom) {
-            // Nativní rekonstrukce Figma Motion (zoom do dashboardu → detail)
+        ZStack {
+            // Výřez/okno s animovaným obsahem (zoom do dashboardu → detail),
+            // rámovaný horní a dolní gradientovou vrstvou.
             OnboardingShowcase()
                 .allowsHitTesting(false)
 
-            // Nadpis nahoře se scrimem pro čitelnost
-            VStack {
+            // Horní vrstva: gradient + nadpis
+            VStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Všechno na jednom místě")
                         .font(.system(size: 24, weight: .bold))
@@ -88,23 +89,39 @@ struct OnboardingView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 24)
                 .padding(.top, 24)
-                .padding(.bottom, 24)
+                .padding(.bottom, 48)
                 .background(
                     LinearGradient(
-                        colors: [Color.gradientEdge, Color.gradientEdge.opacity(0)],
+                        colors: [Color.gradientEdge, Color.gradientEdge, Color.gradientEdge.opacity(0)],
                         startPoint: .top,
                         endPoint: .bottom
                     )
                     .ignoresSafeArea(edges: .top)
                 )
-                Spacer()
+
+                Spacer(minLength: 0)
             }
 
-            OnboardingPrimaryButton(title: "Pokračovat") {
-                requestNotificationsAndAdvance()
+            // Dolní vrstva: gradient + tlačítko
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+
+                OnboardingPrimaryButton(title: "Pokračovat") {
+                    requestNotificationsAndAdvance()
+                }
+                .padding(.horizontal, 28)
+                .padding(.top, 56)
+                .padding(.bottom, 40)
+                .frame(maxWidth: .infinity)
+                .background(
+                    LinearGradient(
+                        colors: [Color.gradientEdge.opacity(0), Color.gradientEdge, Color.gradientEdge],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .ignoresSafeArea(edges: .bottom)
+                )
             }
-            .padding(.horizontal, 28)
-            .padding(.bottom, 40)
         }
     }
 
