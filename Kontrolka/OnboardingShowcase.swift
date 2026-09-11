@@ -22,7 +22,7 @@ struct OnboardingShowcase: View {
                 // Základ: okolní widgety (rozostřené). Domácnost při zoomu zmizí,
                 // aby pod ostrou kopií neprosakoval její blur.
                 dashboardContent(homeOpacity: run ? 0 : 1, othersOpacity: 1)
-                    .blur(radius: run ? 6 : 0)
+                    .blur(radius: run ? 4 : 0)
 
                 // Ostrá Domácnost navrch — objeví se až při zoomu.
                 dashboardContent(homeOpacity: run ? 1 : 0, othersOpacity: 0)
