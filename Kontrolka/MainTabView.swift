@@ -27,17 +27,10 @@ struct MainTabView: View {
         // Custom layout baru (nativní TabView neumí zvětšený/objímaný střed),
         // materiál baru i pluska zůstává nativní Liquid Glass.
         // safeAreaInset zároveň vyhradí obsahu místo, takže nic nemizí za barem.
-        Group {
-            switch selectedTab {
-            case .home:
-                DomuView()
-            case .calendar:
-                CalendarTabView()
-            case .overview:
-                ContentView()
-            case .profile:
-                ProfileView()
-            }
+        ZStack {
+            currentTab
+                .id(selectedTab)
+                .transition(.opacity) // jemný cross-fade mezi taby
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -84,6 +77,20 @@ struct MainTabView: View {
                     itemToEdit: nil
                 )
             }
+        }
+    }
+
+    @ViewBuilder
+    private var currentTab: some View {
+        switch selectedTab {
+        case .home:
+            DomuView()
+        case .calendar:
+            CalendarTabView()
+        case .overview:
+            ContentView()
+        case .profile:
+            ProfileView()
         }
     }
 }

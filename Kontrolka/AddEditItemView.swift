@@ -41,16 +41,9 @@ struct AddEditItemView: View {
     
     var body: some View {
         ZStack {
-            // Bílý list s jemným broskvovým přechodem nahoře (dle Figmy)
-            LinearGradient(
-                stops: [
-                    .init(color: .gradientEdge, location: 0),
-                    .init(color: Color(.systemBackground), location: 0.16)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            // Pozadí Gradient/Edge (světlá broskvová)
+            Color.gradientEdge
+                .ignoresSafeArea()
 
             VStack(spacing: 0) {
                 header

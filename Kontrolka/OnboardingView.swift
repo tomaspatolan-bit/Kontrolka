@@ -60,6 +60,7 @@ struct OnboardingView: View {
             Spacer()
 
             OnboardingPrimaryButton(title: "Další") {
+                Haptics.impact(.light)
                 step = 1
             }
             .padding(.horizontal, 32)
@@ -202,6 +203,7 @@ struct OnboardingView: View {
     private func finish() {
         profileName = name
         profileBirthDate = ISO8601DateFormatter().string(from: birthDate)
+        Haptics.success()
         withAnimation { hasCompletedOnboarding = true }
     }
 }

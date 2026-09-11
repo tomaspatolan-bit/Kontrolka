@@ -6,6 +6,37 @@
 //
 
 import SwiftUI
+import UIKit
+
+/// Haptická odezva (nativní).
+enum Haptics {
+    static func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle = .medium) {
+        UIImpactFeedbackGenerator(style: style).impactOccurred()
+    }
+
+    static func success() {
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+    }
+}
+
+/// Vstupní nájezd prvku (fade + posun zdola), řízený jedním boolem.
+struct AppearReveal: ViewModifier {
+    let isVisible: Bool
+    var delay: Double = 0
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(isVisible ? 1 : 0)
+            .offset(y: isVisible ? 0 : 12)
+            .animation(.timingCurve(0.16, 1, 0.3, 1, duration: 0.5).delay(delay), value: isVisible)
+    }
+}
+
+extension View {
+    func appearReveal(_ isVisible: Bool, delay: Double = 0) -> some View {
+        modifier(AppearReveal(isVisible: isVisible, delay: delay))
+    }
+}
 
 /// Tlačítkový styl s jemným „zmáčknutím" — mikrointerakce pro karty/widgety.
 struct PressableCardStyle: ButtonStyle {

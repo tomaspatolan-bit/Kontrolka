@@ -21,6 +21,8 @@ struct CategorySummary {
 struct DomuView: View {
     @Query(sort: \TrackedItem.dueDate, order: .forward) private var items: [TrackedItem]
     @Namespace private var categoryNS
+    @State private var revealed = false
+    private static var hasRevealedOnce = false
 
     private func summary(for category: Category) -> CategorySummary {
         let inCategory = items.filter { $0.category == category }
@@ -51,17 +53,21 @@ struct DomuView: View {
                             .frame(height: 24, alignment: .leading)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .accessibilityLabel("Kontrolka")
+                            .appearReveal(revealed, delay: 0)
 
                         GreetingCard(documentCount: documentCount)
+                            .appearReveal(revealed, delay: 0.06)
 
                         // Widgety nebo prázdný stav
                         if items.isEmpty {
                             emptyState
+                                .appearReveal(revealed, delay: 0.12)
                         } else {
                             VStack(spacing: 12) {
                                 categoryLink(.vehicle) {
                                     VehicleWidget(summary: summary(for: .vehicle))
                                 }
+                                .appearReveal(revealed, delay: 0.12)
 
                                 HStack(spacing: 13) {
                                     categoryLink(.pet) {
@@ -71,6 +77,7 @@ struct DomuView: View {
                                         SmallCategoryWidget(summary: summary(for: .homeMaintenance))
                                     }
                                 }
+                                .appearReveal(revealed, delay: 0.18)
 
                                 HStack(spacing: 13) {
                                     categoryLink(.document) {
@@ -80,6 +87,7 @@ struct DomuView: View {
                                         SmallCategoryWidget(summary: summary(for: .other))
                                     }
                                 }
+                                .appearReveal(revealed, delay: 0.24)
                             }
                         }
                     }
@@ -91,6 +99,19 @@ struct DomuView: View {
             .navigationDestination(for: Category.self) { category in
                 CategoryDetailView(category: category)
                     .zoomTransition(id: category, in: categoryNS)
+            }
+            .onAppear(perform: triggerReveal)
+        }
+    }
+
+    private func triggerReveal() {
+        if Self.hasRevealedOnce {
+            revealed = true
+        } else {
+            revealed = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                revealed = true
+                Self.hasRevealedOnce = true
             }
         }
     }
