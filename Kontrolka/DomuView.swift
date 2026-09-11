@@ -20,6 +20,7 @@ struct CategorySummary {
 
 struct DomuView: View {
     @Query(sort: \TrackedItem.dueDate, order: .forward) private var items: [TrackedItem]
+    @Namespace private var categoryNS
 
     private func summary(for category: Category) -> CategorySummary {
         let inCategory = items.filter { $0.category == category }
@@ -85,6 +86,7 @@ struct DomuView: View {
             }
             .navigationDestination(for: Category.self) { category in
                 CategoryDetailView(category: category)
+                    .zoomTransition(id: category, in: categoryNS)
             }
         }
     }
@@ -96,7 +98,8 @@ struct DomuView: View {
         NavigationLink(value: category) {
             content()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressableCardStyle())
+        .zoomSource(id: category, in: categoryNS)
     }
 }
 

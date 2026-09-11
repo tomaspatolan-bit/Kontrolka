@@ -43,9 +43,11 @@ struct CategoryDetailView: View {
                                 NavigationLink(value: item) {
                                     TrackedItemCardView(item: item)
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(PressableCardStyle())
+                                .transition(.move(edge: .top).combined(with: .opacity))
                             }
                         }
+                        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: items.count)
                     }
 
                     addButton
