@@ -10,6 +10,8 @@ import SwiftData
 
 @main
 struct KontrolkaApp: App {
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             TrackedItem.self,
@@ -25,7 +27,11 @@ struct KontrolkaApp: App {
 
     var body: some Scene {
         WindowGroup {
-            MainTabView()
+            if hasCompletedOnboarding {
+                MainTabView()
+            } else {
+                OnboardingView()
+            }
         }
         .modelContainer(sharedModelContainer)
     }
