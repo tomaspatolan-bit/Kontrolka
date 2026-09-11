@@ -24,31 +24,33 @@ struct MainTabView: View {
     @State private var capturedImage: UIImage?
     
     var body: some View {
-        ZStack(alignment: .bottom) {
-            // Main content
-            Group {
-                switch selectedTab {
-                case .home:
-                    DomuView()
-                case .calendar:
-                    CalendarTabView()
-                case .overview:
-                    ContentView()
-                case .profile:
-                    ProfileView()
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            
-            // Custom tab bar
-            CustomTabBar(
-                selectedTab: $selectedTab,
-                onAddTapped: {
-                    showingAddOptions = true
-                }
-            )
+        // Nativní TabView (na iOS 26 automaticky Liquid Glass tab bar).
+        // Prostřední "+" je jediná custom komponenta — nativní tab bar
+        // vyvýšené akční tlačítko uprostřed neumí.
+        TabView(selection: $selectedTab) {
+            DomuView()
+                .tabItem { Label("Domů", systemImage: "house") }
+                .tag(AppTab.home)
+
+            CalendarTabView()
+                .tabItem { Label("Kalendář", systemImage: "calendar") }
+                .tag(AppTab.calendar)
+
+            ContentView()
+                .tabItem { Label("Přehled", systemImage: "list.bullet") }
+                .tag(AppTab.overview)
+
+            ProfileView()
+                .tabItem { Label("Profil", systemImage: "person") }
+                .tag(AppTab.profile)
         }
-        .tint(Color.brandAccent) // Brand tint pro celou appku
+        .tint(Color.brandAccent) // Brand tint aktivního tabu
+        .overlay(alignment: .bottom) {
+            AddButton {
+                showingAddOptions = true
+            }
+            .padding(.bottom, 2) // vyvýšení nad tab bar (dolaď dle zařízení)
+        }
         .confirmationDialog(
             "Přidat položku",
             isPresented: $showingAddOptions,
@@ -117,7 +119,7 @@ struct ProfileView: View {
                     }
                     .padding(.horizontal, 24)
                     .padding(.top, 12)
-                    .padding(.bottom, 130) // prostor pro plovoucí tab bar
+                    .padding(.bottom, 40) // nativní tab bar si inset řeší sám
                 }
             }
             .navigationTitle("Profil")

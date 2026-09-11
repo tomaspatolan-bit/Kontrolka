@@ -69,7 +69,7 @@ struct DomuView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 24)
-                .padding(.bottom, 130) // prostor pro plovoucí tab bar
+                .padding(.bottom, 40) // nativní tab bar si inset řeší sám
             }
         }
     }
