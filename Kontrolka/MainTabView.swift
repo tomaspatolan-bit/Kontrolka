@@ -191,7 +191,7 @@ struct CalendarTabView: View {
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.title3.weight(.semibold))
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(Color.brandAccent)
             }
             
             Spacer()
@@ -206,7 +206,7 @@ struct CalendarTabView: View {
             } label: {
                 Image(systemName: "chevron.right")
                     .font(.title3.weight(.semibold))
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(Color.brandAccent)
             }
         }
         .padding()
@@ -258,11 +258,11 @@ struct CalendarTabView: View {
                 .frame(maxWidth: .infinity)
                 .background(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(isToday ? .blue : .clear)
+                        .fill(isToday ? Color.brandAccent : Color.clear)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .stroke(isToday ? .blue.opacity(0.5) : .clear, lineWidth: 2)
+                        .stroke(isToday ? Color.brandAccent.opacity(0.5) : Color.clear, lineWidth: 2)
                 )
             }
             .disabled(itemsForDay.isEmpty)
@@ -304,16 +304,16 @@ struct CalendarTabView: View {
     private func mostUrgentColor(for items: [TrackedItem]) -> Color? {
         guard !items.isEmpty else { return nil }
         
-        // Pokud existuje alespoň jedna critical -> červená
+        // Pokud existuje alespoň jedna critical -> brand critical
         if items.contains(where: { $0.urgency == .critical }) {
-            return .red
+            return .urgencyCriticalFill
         }
-        // Pokud existuje alespoň jedna warning -> oranžová
+        // Pokud existuje alespoň jedna warning -> brand warning
         if items.contains(where: { $0.urgency == .warning }) {
-            return .orange
+            return .urgencyWarningFill
         }
-        // Jinak zelená
-        return .green
+        // Jinak brand normal
+        return .urgencyNormalFill
     }
     
     private func changeMonth(by value: Int) {

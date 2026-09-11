@@ -74,14 +74,14 @@ struct CustomTabBar: View {
                     if reduceTransparency {
                         // Pevné pozadí pro accessibility
                         Circle()
-                            .fill(Color.blue.opacity(0.9))
+                            .fill(Color.brandAccent.opacity(0.9))
                             .frame(width: 60, height: 60)
                     } else {
                         // Liquid glass efekt pro plus tlačítko
                         Circle()
                             .fill(
                                 LinearGradient(
-                                    colors: [Color.blue, Color.blue.opacity(0.8)],
+                                    colors: [Color.brandAccent, Color.brandAccent.opacity(0.8)],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
@@ -98,7 +98,7 @@ struct CustomTabBar: View {
                         .font(.system(size: 26, weight: .semibold))
                         .foregroundStyle(.white)
                 }
-                .shadow(color: .blue.opacity(0.3), radius: 12, x: 0, y: 6)
+                .shadow(color: .brandAccent.opacity(0.3), radius: 12, x: 0, y: 6)
             }
             .offset(y: -40) // Vystouplé nad bar
         }
@@ -133,7 +133,7 @@ struct TabBarButton: View {
                             .frame(width: 50, height: 50)
                             .overlay {
                                 Circle()
-                                    .fill(.blue.opacity(0.15))
+                                    .fill(Color.brandAccent.opacity(0.15))
                                     .frame(width: 50, height: 50)
                             }
                     }
@@ -147,7 +147,7 @@ struct TabBarButton: View {
                 Text(title)
                     .font(.caption2.weight(isSelected ? .semibold : .regular))
             }
-            .foregroundStyle(isSelected ? .blue : .secondary)
+            .foregroundStyle(isSelected ? Color.brandAccent : Color.secondary)
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.plain)
