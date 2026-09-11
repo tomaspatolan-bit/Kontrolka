@@ -19,11 +19,13 @@ struct OnboardingShowcase: View {
             // ostrá (focus): vespod celý dashboard s blurem, navrch ostrá kopie
             // jen Domácnosti (identický layout → sedne přesně na místo).
             ZStack {
-                dashboardContent(onlyHome: false)
+                // Základ: okolní widgety (rozostřené). Domácnost při zoomu zmizí,
+                // aby pod ostrou kopií neprosakoval její blur.
+                dashboardContent(homeOpacity: run ? 0 : 1, othersOpacity: 1)
                     .blur(radius: run ? 6 : 0)
 
-                dashboardContent(onlyHome: true)
-                    .opacity(run ? 1 : 0)
+                // Ostrá Domácnost navrch — objeví se až při zoomu.
+                dashboardContent(homeOpacity: run ? 1 : 0, othersOpacity: 0)
             }
             .scaleEffect(run ? 2.1 : 1.0, anchor: UnitPoint(x: 0.95, y: 0.65))
             .animation(.easeInOut(duration: 2.8), value: run)
@@ -42,22 +44,23 @@ struct OnboardingShowcase: View {
 
     // MARK: - Dashboard (reużívá reálné widgety)
 
-    /// onlyHome = true → viditelná je jen Domácnost (ostrá kopie pro focus),
-    /// ostatní widgety jsou průhledné, ale drží layout (Domácnost sedne na místo).
-    private func dashboardContent(onlyHome: Bool) -> some View {
+    /// Řídí průhlednost Domácnosti a okolních widgetů zvlášť — layout drží vždy,
+    /// takže ostrá vrstva (jen Domácnost) sedne přesně na tu rozostřenou.
+    private func dashboardContent(homeOpacity: Double, othersOpacity: Double) -> some View {
         VStack(spacing: 12) {
             VehicleWidget(summary: sample(.vehicle, count: 4, title: "Dálniční známka", days: 5))
-                .opacity(onlyHome ? 0 : 1)
+                .opacity(othersOpacity)
             HStack(spacing: 13) {
                 SmallCategoryWidget(summary: sample(.pet, count: 1, title: "Veterina", days: 18))
-                    .opacity(onlyHome ? 0 : 1)
+                    .opacity(othersOpacity)
                 SmallCategoryWidget(summary: sample(.homeMaintenance, count: 1, title: "Kotel", days: 18))
+                    .opacity(homeOpacity)
             }
             HStack(spacing: 13) {
                 SmallCategoryWidget(summary: sample(.document, count: 1, title: "Obč. průkaz", days: 18))
-                    .opacity(onlyHome ? 0 : 1)
+                    .opacity(othersOpacity)
                 SmallCategoryWidget(summary: sample(.other, count: 1, title: "Hasičák", days: 18))
-                    .opacity(onlyHome ? 0 : 1)
+                    .opacity(othersOpacity)
             }
         }
         .padding(.horizontal, 16)

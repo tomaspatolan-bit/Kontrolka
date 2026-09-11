@@ -89,7 +89,7 @@ struct OnboardingView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 24)
                 .padding(.top, 24)
-                .padding(.bottom, 48)
+                .padding(.bottom, 110)
                 .background(
                     LinearGradient(
                         colors: [Color.gradientEdge, Color.gradientEdge, Color.gradientEdge.opacity(0)],
@@ -110,7 +110,7 @@ struct OnboardingView: View {
                     requestNotificationsAndAdvance()
                 }
                 .padding(.horizontal, 28)
-                .padding(.top, 56)
+                .padding(.top, 120)
                 .padding(.bottom, 40)
                 .frame(maxWidth: .infinity)
                 .background(
