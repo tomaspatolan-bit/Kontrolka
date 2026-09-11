@@ -31,9 +31,9 @@ struct DomuView: View {
         )
     }
 
-    /// Počet položek, které potřebují pozornost brzy (critical + warning)
-    private var soonCount: Int {
-        items.filter { $0.urgency != .normal }.count
+    /// Počet dokladů (pro dlaždici na uvítací kartě)
+    private var documentCount: Int {
+        items.filter { $0.category == .document }.count
     }
 
     var body: some View {
@@ -52,7 +52,7 @@ struct DomuView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .accessibilityLabel("Kontrolka")
 
-                        GreetingCard(totalCount: items.count, soonCount: soonCount)
+                        GreetingCard(documentCount: documentCount)
 
                         // Widgety (klepnutí → detail kategorie)
                         VStack(spacing: 12) {
@@ -106,8 +106,10 @@ struct DomuView: View {
 // MARK: - GreetingCard
 
 struct GreetingCard: View {
-    let totalCount: Int
-    let soonCount: Int
+    let documentCount: Int
+
+    @AppStorage(ProfileStorage.nameKey) private var name = ""
+    @AppStorage(ProfileStorage.birthDateKey) private var birthDateISO = ""
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -115,25 +117,32 @@ struct GreetingCard: View {
                 HStack(spacing: 10) {
                     ZStack {
                         Circle().fill(Color.brandAccent)
-                        Image(systemName: "person.fill")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(Color.white)
+                        if name.isEmpty {
+                            Image(systemName: "person.fill")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(Color.white)
+                        } else {
+                            Text(Profile.initial(from: name))
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(Color.white)
+                        }
                     }
                     .frame(width: 36, height: 36)
 
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("Vítejte zpět")
+                        Text(name.isEmpty ? "Vítejte zpět" : name)
                             .font(.system(size: 18, weight: .bold))
                             .foregroundStyle(Color.brandTextPrimary)
-                        Text("Přehled vašich termínů")
+                            .lineLimit(1)
+                        Text("Osobní karta")
                             .font(.system(size: 12))
                             .foregroundStyle(Color.brandTextSecondary)
                     }
                 }
 
                 HStack(spacing: 8) {
-                    StatTile(label: "Sledováno", value: "\(totalCount)")
-                    StatTile(label: "Brzy", value: "\(soonCount)")
+                    StatTile(label: "Věk", value: Profile.ageText(fromISO: birthDateISO) ?? "—")
+                    StatTile(label: "Doklady", value: "\(documentCount)")
                 }
             }
 

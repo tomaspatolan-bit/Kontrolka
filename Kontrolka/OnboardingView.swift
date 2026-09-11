@@ -11,8 +11,8 @@ import SwiftUI
 
 struct OnboardingView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
-    @AppStorage("profileName") private var profileName = ""
-    @AppStorage("profileBirthDate") private var profileBirthDate = ""
+    @AppStorage(ProfileStorage.nameKey) private var profileName = ""
+    @AppStorage(ProfileStorage.birthDateKey) private var profileBirthDate = ""
 
     @State private var step = 0
     @State private var name = ""

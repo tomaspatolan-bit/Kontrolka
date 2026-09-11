@@ -99,7 +99,12 @@ struct ProfileView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 22) {
-                        ProfileSummaryCard()
+                        NavigationLink {
+                            ProfileEditView()
+                        } label: {
+                            ProfileSummaryCard()
+                        }
+                        .buttonStyle(PressableCardStyle())
 
                         profileSection(title: "O APLIKACI") {
                             ProfileRow(icon: "info.circle", title: "Verze", trailing: "1.0.0")
@@ -141,26 +146,48 @@ struct ProfileView: View {
 
 // Karta shrnutí profilu
 struct ProfileSummaryCard: View {
+    @AppStorage(ProfileStorage.nameKey) private var name = ""
+    @AppStorage(ProfileStorage.birthDateKey) private var birthDateISO = ""
+
+    private var subtitle: String {
+        guard let date = Profile.birthDate(fromISO: birthDateISO) else {
+            return "Klepni pro nastavení profilu"
+        }
+        let years = Profile.age(from: date)
+        return "\(years) \(Profile.yearsWord(years)) · \(Profile.formattedBirthDate(date))"
+    }
+
     var body: some View {
         HStack(spacing: 14) {
             ZStack {
                 Circle().fill(Color.brandAccent)
-                Image(systemName: "person.fill")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(Color.white)
+                if name.isEmpty {
+                    Image(systemName: "person.fill")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundStyle(Color.white)
+                } else {
+                    Text(Profile.initial(from: name))
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundStyle(Color.white)
+                }
             }
             .frame(width: 56, height: 56)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Kontrolka")
+                Text(name.isEmpty ? "Doplň profil" : name)
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(Color.brandTextPrimary)
-                Text("Vaše termíny na jednom místě")
+                    .lineLimit(1)
+                Text(subtitle)
                     .font(.system(size: 13))
                     .foregroundStyle(Color.brandTextSecondary)
             }
 
             Spacer(minLength: 0)
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Color.brandTextSecondary)
         }
         .padding(18)
         .background(
