@@ -36,42 +36,67 @@ struct DomuView: View {
     }
 
     var body: some View {
-        ZStack {
-            BrandGradientBackground()
-                .ignoresSafeArea()
+        NavigationStack {
+            ZStack {
+                BrandGradientBackground()
+                    .ignoresSafeArea()
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 30) {
-                    // Logo
-                    Image("Logo")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 24, alignment: .leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .accessibilityLabel("Kontrolka")
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 30) {
+                        // Logo
+                        Image("Logo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 24, alignment: .leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .accessibilityLabel("Kontrolka")
 
-                    GreetingCard(totalCount: items.count, soonCount: soonCount)
+                        GreetingCard(totalCount: items.count, soonCount: soonCount)
 
-                    // Widgety
-                    VStack(spacing: 12) {
-                        VehicleWidget(summary: summary(for: .vehicle))
+                        // Widgety (klepnutí → detail kategorie)
+                        VStack(spacing: 12) {
+                            categoryLink(.vehicle) {
+                                VehicleWidget(summary: summary(for: .vehicle))
+                            }
 
-                        HStack(spacing: 13) {
-                            SmallCategoryWidget(summary: summary(for: .pet))
-                            SmallCategoryWidget(summary: summary(for: .homeMaintenance))
-                        }
+                            HStack(spacing: 13) {
+                                categoryLink(.pet) {
+                                    SmallCategoryWidget(summary: summary(for: .pet))
+                                }
+                                categoryLink(.homeMaintenance) {
+                                    SmallCategoryWidget(summary: summary(for: .homeMaintenance))
+                                }
+                            }
 
-                        HStack(spacing: 13) {
-                            SmallCategoryWidget(summary: summary(for: .document))
-                            SmallCategoryWidget(summary: summary(for: .other))
+                            HStack(spacing: 13) {
+                                categoryLink(.document) {
+                                    SmallCategoryWidget(summary: summary(for: .document))
+                                }
+                                categoryLink(.other) {
+                                    SmallCategoryWidget(summary: summary(for: .other))
+                                }
+                            }
                         }
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 24)
+                    .padding(.bottom, 16) // rezerva pro vyvýšené plusko (bar řeší safeAreaInset)
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 24)
-                .padding(.bottom, 16) // rezerva pro vyvýšené plusko (bar řeší safeAreaInset)
+            }
+            .navigationDestination(for: Category.self) { category in
+                CategoryDetailView(category: category)
             }
         }
+    }
+
+    private func categoryLink<Content: View>(
+        _ category: Category,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        NavigationLink(value: category) {
+            content()
+        }
+        .buttonStyle(.plain)
     }
 }
 

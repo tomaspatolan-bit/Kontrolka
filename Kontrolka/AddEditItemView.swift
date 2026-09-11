@@ -22,12 +22,12 @@ struct AddEditItemView: View {
     @State private var photoData: Data?
     @State private var showingPhotoPreview = false
     
-    init(modelContext: ModelContext, initialPhotoData: Data? = nil, itemToEdit: TrackedItem? = nil) {
+    init(modelContext: ModelContext, initialPhotoData: Data? = nil, initialCategory: Category? = nil, itemToEdit: TrackedItem? = nil) {
         self.modelContext = modelContext
         self.itemToEdit = itemToEdit
-        
+
         _title = State(initialValue: itemToEdit?.title ?? "")
-        _category = State(initialValue: itemToEdit?.category ?? .vehicle)
+        _category = State(initialValue: itemToEdit?.category ?? initialCategory ?? .vehicle)
         _dueDate = State(initialValue: itemToEdit?.dueDate ?? Calendar.current.date(byAdding: .month, value: 1, to: Date()) ?? Date())
         _note = State(initialValue: itemToEdit?.note ?? "")
         
