@@ -69,7 +69,7 @@ struct DomuView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 24)
-                .padding(.bottom, 40) // nativní tab bar si inset řeší sám
+                .padding(.bottom, 16) // rezerva pro vyvýšené plusko (bar řeší safeAreaInset)
             }
         }
     }
