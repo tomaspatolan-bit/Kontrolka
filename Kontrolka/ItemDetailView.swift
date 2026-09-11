@@ -21,78 +21,22 @@ struct ItemDetailView: View {
     @State private var calendarErrorMessage = ""
     
     var body: some View {
-        List {
-            Section {
-                DetailRow(label: "Název", value: item.title)
-                DetailRow(label: "Kategorie", value: item.category.rawValue)
-                DetailRow(label: "Datum vypršení", value: item.dueDate.formatted(date: .long, time: .omitted))
-                
-                HStack {
-                    Text("Stav")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    HStack(spacing: 6) {
-                        Circle()
-                            .fill(item.urgency.color)
-                            .frame(width: 10, height: 10)
-                        Text(item.dueDateFormatted)
-                            .font(.body.weight(.semibold))
-                            .foregroundStyle(item.urgency.textColor)
-                    }
+        ZStack {
+            BrandGradientBackground()
+                .ignoresSafeArea()
+
+            ScrollView {
+                VStack(spacing: 16) {
+                    heroCard
+                    infoCard
+                    photoCard
+                    actions
                 }
-            }
-            
-            if let note = item.note {
-                Section {
-                    Text(note)
-                        .font(.body)
-                } header: {
-                    Text("Poznámka")
-                }
-            }
-            
-            if let photoData = item.photoData, let uiImage = UIImage(data: photoData) {
-                Section {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .scaledToFit()
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .onTapGesture {
-                            showingPhotoPreview = true
-                        }
-                        .accessibilityLabel("Fotka dokladu, klepněte pro zobrazení")
-                } header: {
-                    Text("Fotka dokladu")
-                }
-            }
-            
-            Section {
-                Button {
-                    Task {
-                        await exportToCalendar()
-                    }
-                } label: {
-                    Label("Přidat do kalendáře", systemImage: "calendar.badge.plus")
-                }
-                .accessibilityLabel("Přidat do kalendáře")
-                
-                Button {
-                    showingEditSheet = true
-                } label: {
-                    Label("Upravit", systemImage: "pencil")
-                }
-                .accessibilityLabel("Upravit položku")
-                
-                Button(role: .destructive) {
-                    showingDeleteAlert = true
-                } label: {
-                    Label("Smazat", systemImage: "trash")
-                }
-                .accessibilityLabel("Smazat položku")
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 40)
             }
         }
-        .scrollContentBackground(.hidden) // Prosvítání brand gradientu
         .navigationTitle("Detail")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
@@ -124,6 +68,135 @@ struct ItemDetailView: View {
         }
     }
     
+    // MARK: - Karty
+
+    private var heroCard: some View {
+        VStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(item.urgency.color.opacity(0.15))
+                    .frame(width: 64, height: 64)
+                Image(systemName: item.category.iconName)
+                    .font(.system(size: 26, weight: .semibold))
+                    .foregroundStyle(item.urgency.color)
+            }
+
+            VStack(spacing: 4) {
+                Text(item.title)
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundStyle(Color.brandTextPrimary)
+                    .multilineTextAlignment(.center)
+                Text(item.category.rawValue)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color.brandTextSecondary)
+            }
+
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(item.urgency.color)
+                    .frame(width: 8, height: 8)
+                Text(item.dueDateFormatted)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(item.urgency.textColor)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(24)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.surfaceCardBase)
+        )
+    }
+
+    private var infoCard: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Datum vypršení")
+                    .font(.system(size: 15))
+                    .foregroundStyle(Color.brandTextSecondary)
+                Spacer()
+                Text(item.dueDate.formatted(date: .long, time: .omitted))
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color.brandTextPrimary)
+            }
+            .padding(.vertical, 14)
+
+            if let note = item.note, !note.isEmpty {
+                Rectangle()
+                    .fill(Color.brandTextSecondary.opacity(0.15))
+                    .frame(height: 1)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Poznámka")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.brandTextSecondary)
+                    Text(note)
+                        .font(.system(size: 15))
+                        .foregroundStyle(Color.brandTextPrimary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 14)
+            }
+        }
+        .padding(.horizontal, 18)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.surfaceCardBase)
+        )
+    }
+
+    @ViewBuilder
+    private var photoCard: some View {
+        if let photoData = item.photoData, let uiImage = UIImage(data: photoData) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .onTapGesture { showingPhotoPreview = true }
+                .accessibilityLabel("Fotka dokladu, klepněte pro zobrazení")
+        }
+    }
+
+    private var actions: some View {
+        VStack(spacing: 10) {
+            actionButton("Přidat do kalendáře", icon: "calendar.badge.plus") {
+                Task { await exportToCalendar() }
+            }
+            actionButton("Upravit", icon: "pencil") {
+                showingEditSheet = true
+            }
+            actionButton("Smazat", icon: "trash", destructive: true) {
+                showingDeleteAlert = true
+            }
+        }
+    }
+
+    private func actionButton(
+        _ label: String,
+        icon: String,
+        destructive: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .semibold))
+                Text(label)
+                    .font(.system(size: 16, weight: .semibold))
+                Spacer()
+            }
+            .foregroundStyle(destructive ? Color.urgencyCriticalText : Color.brandAccent)
+            .padding(16)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.surfaceCardBase)
+            )
+        }
+        .buttonStyle(PressableCardStyle())
+        .accessibilityLabel(label)
+    }
+
     private func deleteItem() {
         Task {
             await NotificationManager.shared.cancelNotifications(for: item)
@@ -147,22 +220,6 @@ struct ItemDetailView: View {
         } catch {
             calendarErrorMessage = "Nepodařilo se přidat položku do kalendáře."
             showingCalendarError = true
-        }
-    }
-}
-
-struct DetailRow: View {
-    let label: String
-    let value: String
-    
-    var body: some View {
-        HStack {
-            Text(label)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            Spacer()
-            Text(value)
-                .font(.body)
         }
     }
 }

@@ -54,27 +54,31 @@ struct DomuView: View {
 
                         GreetingCard(documentCount: documentCount)
 
-                        // Widgety (klepnutí → detail kategorie)
-                        VStack(spacing: 12) {
-                            categoryLink(.vehicle) {
-                                VehicleWidget(summary: summary(for: .vehicle))
-                            }
+                        // Widgety nebo prázdný stav
+                        if items.isEmpty {
+                            emptyState
+                        } else {
+                            VStack(spacing: 12) {
+                                categoryLink(.vehicle) {
+                                    VehicleWidget(summary: summary(for: .vehicle))
+                                }
 
-                            HStack(spacing: 13) {
-                                categoryLink(.pet) {
-                                    SmallCategoryWidget(summary: summary(for: .pet))
+                                HStack(spacing: 13) {
+                                    categoryLink(.pet) {
+                                        SmallCategoryWidget(summary: summary(for: .pet))
+                                    }
+                                    categoryLink(.homeMaintenance) {
+                                        SmallCategoryWidget(summary: summary(for: .homeMaintenance))
+                                    }
                                 }
-                                categoryLink(.homeMaintenance) {
-                                    SmallCategoryWidget(summary: summary(for: .homeMaintenance))
-                                }
-                            }
 
-                            HStack(spacing: 13) {
-                                categoryLink(.document) {
-                                    SmallCategoryWidget(summary: summary(for: .document))
-                                }
-                                categoryLink(.other) {
-                                    SmallCategoryWidget(summary: summary(for: .other))
+                                HStack(spacing: 13) {
+                                    categoryLink(.document) {
+                                        SmallCategoryWidget(summary: summary(for: .document))
+                                    }
+                                    categoryLink(.other) {
+                                        SmallCategoryWidget(summary: summary(for: .other))
+                                    }
                                 }
                             }
                         }
@@ -100,6 +104,66 @@ struct DomuView: View {
         }
         .buttonStyle(PressableCardStyle())
         .zoomSource(id: category, in: categoryNS)
+    }
+
+    // Prázdný stav (dle Figma „Domů-PrázdnýStav") — ilustrace je zatím placeholder.
+    private var emptyState: some View {
+        VStack(spacing: 20) {
+            VStack(spacing: 16) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(
+                            Color.brandTextSecondary.opacity(0.35),
+                            style: StrokeStyle(lineWidth: 1.5, dash: [6])
+                        )
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 40))
+                        .foregroundStyle(Color.brandAccent.opacity(0.7))
+                }
+                .frame(width: 140, height: 120)
+
+                VStack(spacing: 8) {
+                    Text("Zatím nic nesleduješ")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(Color.brandTextPrimary)
+                    Text("Přidej první věc — auto, dům, mazlíčka nebo cokoliv, na co nechceš zapomenout.")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color.brandTextSecondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.horizontal, 8)
+            }
+            .padding(24)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.surfaceCardBase)
+            )
+
+            // Čárkovaná šipka směrem k „+" v baru
+            VStack(spacing: 4) {
+                VDashedLine()
+                    .stroke(
+                        Color.brandAccent.opacity(0.55),
+                        style: StrokeStyle(lineWidth: 2, dash: [6])
+                    )
+                    .frame(width: 2, height: 90)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Color.brandAccent.opacity(0.55))
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+}
+
+/// Svislá čára (pro čárkovaný ukazatel v prázdném stavu).
+struct VDashedLine: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.midX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
+        return path
     }
 }
 
