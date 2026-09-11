@@ -2,7 +2,12 @@
 //  ContentView.swift
 //  Kontrolka
 //
-//  Created by Tomáš PATOLÁN on 04.09.2026.
+//  Hlavní seznam položek — nyní jako karty (TrackedItemCardView).
+//  Přidávání položek se přesunulo do MainTabView (prostřední tlačítko v bottom
+//  baru), proto tu už není toolbar tlačítko "+".
+//
+//  ⚠️ Rekonstruováno podle CLAUDE_CONTEXT.md, neměl jsem tvůj skutečný soubor —
+//  slouč s původní verzí, ať nepřijdeš o drobnosti, co tu nejsou popsané.
 //
 
 import SwiftUI
@@ -10,52 +15,59 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @Query(sort: \TrackedItem.dueDate, order: .forward) private var items: [TrackedItem]
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+        NavigationStack {
+            ZStack {
+                // Brand gradient jako nejspodnější vrstva
+                BrandGradientBackground()
+                    .ignoresSafeArea()
+                
+                // Obsah na vrchu
+                Group {
+                    if items.isEmpty {
+                        ContentUnavailableView(
+                            "Zatím nic nesleduješ",
+                            systemImage: "checkmark.circle",
+                            description: Text("Přidej první položku tlačítkem dole.")
+                        )
+                    } else {
+                        List {
+                            ForEach(items) { item in
+                                NavigationLink(value: item) {
+                                    TrackedItemCardView(item: item)
+                                }
+                                .buttonStyle(.plain) // Potlačí automatický chevron NavigationLink
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                                .swipeActions(edge: .trailing) {
+                                    Button(role: .destructive) {
+                                        delete(item)
+                                    } label: {
+                                        Label("Smazat", systemImage: "trash")
+                                    }
+                                }
+                            }
+                        }
+                        .listStyle(.plain)
+                        .scrollContentBackground(.hidden) // Prosvítání brand gradientu
                     }
                 }
-                .onDelete(perform: deleteItems)
             }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-        } detail: {
-            Text("Select an item")
-        }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
+            .navigationTitle("Kontrolka")
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .navigationDestination(for: TrackedItem.self) { item in
+                ItemDetailView(item: item, modelContext: modelContext)
             }
         }
     }
-}
 
-#Preview {
-    ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+    private func delete(_ item: TrackedItem) {
+        Task {
+            await NotificationManager.shared.cancelNotifications(for: item)
+        }
+        modelContext.delete(item)
+    }
 }

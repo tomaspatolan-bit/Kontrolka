@@ -29,9 +29,22 @@
 		10DE09F1304B088400072088 /* KontrolkaUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KontrolkaUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		10DE0A27304B0E2200072088 /* Exceptions for "Kontrolka" folder in "Kontrolka" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 10DE09D7304B088200072088 /* Kontrolka */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		10DE09DA304B088200072088 /* Kontrolka */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				10DE0A27304B0E2200072088 /* Exceptions for "Kontrolka" folder in "Kontrolka" target */,
+			);
 			path = Kontrolka;
 			sourceTree = "<group>";
 		};
@@ -397,6 +410,11 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Kontrolka/Info.plist;
+				INFOPLIST_KEY_NSCalendarsUsageDescription = "Kontrolka potřebuje přístup ke kalendáři, abys mohl exportovat lhůty.";
+				INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription = "Kontrolka potřebuje přístup ke kalendáři, abys mohl exportovat lhůty.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Kontrolka potřebuje přístup k fotoaparátu, abys mohl vyfotit doklad.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Kontrolka potřebuje přístup k fotkám, abys mohl přidat fotku dokladu.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -428,6 +446,11 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Kontrolka/Info.plist;
+				INFOPLIST_KEY_NSCalendarsUsageDescription = "Kontrolka potřebuje přístup ke kalendáři, abys mohl exportovat lhůty.";
+				INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription = "Kontrolka potřebuje přístup ke kalendáři, abys mohl exportovat lhůty.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Kontrolka potřebuje přístup k fotoaparátu, abys mohl vyfotit doklad.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Kontrolka potřebuje přístup k fotkám, abys mohl přidat fotku dokladu.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
