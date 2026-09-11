@@ -71,23 +71,9 @@ struct OnboardingView: View {
 
     private var valueStep: some View {
         ZStack(alignment: .bottom) {
-            // Statický náhled dashboardu (bez motion, neinteraktivní)
-            VStack(spacing: 12) {
-                VehicleWidget(summary: sample(.vehicle, count: 4, title: "Dálniční známka", days: 5))
-                HStack(spacing: 13) {
-                    SmallCategoryWidget(summary: sample(.pet, count: 1, title: "Veterina", days: 18))
-                    SmallCategoryWidget(summary: sample(.homeMaintenance, count: 1, title: "Kotel", days: 18))
-                }
-                HStack(spacing: 13) {
-                    SmallCategoryWidget(summary: sample(.document, count: 1, title: "Obč. průkaz", days: 18))
-                    SmallCategoryWidget(summary: sample(.other, count: 1, title: "Hasičák", days: 18))
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 210)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .allowsHitTesting(false)
-            .clipped()
+            // Nativní rekonstrukce Figma Motion (zoom do dashboardu → detail)
+            OnboardingShowcase()
+                .allowsHitTesting(false)
 
             // Nadpis nahoře se scrimem pro čitelnost
             VStack {
@@ -179,12 +165,6 @@ struct OnboardingView: View {
                         .fill(Color.surfaceCardBase)
                 )
         }
-    }
-
-    private func sample(_ category: Category, count: Int, title: String, days: Int) -> CategorySummary {
-        let due = Calendar.current.date(byAdding: .day, value: days, to: Date()) ?? Date()
-        let item = TrackedItem(title: title, category: category, dueDate: due)
-        return CategorySummary(category: category, count: count, nearest: item)
     }
 
     private func requestNotificationsAndAdvance() {
