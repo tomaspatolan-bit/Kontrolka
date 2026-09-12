@@ -19,9 +19,11 @@ struct CategorySummary {
 // MARK: - Domů
 
 struct DomuView: View {
+    @Environment(\.modelContext) private var modelContext
     @Query(sort: \TrackedItem.dueDate, order: .forward) private var items: [TrackedItem]
     @Namespace private var categoryNS
     @State private var revealed = false
+    @State private var addCategory: Category?
     private static var hasRevealedOnce = false
 
     private func summary(for category: Category) -> CategorySummary {
@@ -100,6 +102,9 @@ struct DomuView: View {
                 CategoryDetailView(category: category)
                     .zoomTransition(id: category, in: categoryNS)
             }
+            .sheet(item: $addCategory) { category in
+                AddEditItemView(modelContext: modelContext, initialCategory: category)
+            }
             .onAppear(perform: triggerReveal)
         }
     }
@@ -127,65 +132,138 @@ struct DomuView: View {
         .zoomSource(id: category, in: categoryNS)
     }
 
-    // Prázdný stav (dle Figma „Domů-PrázdnýStav") — ilustrace je zatím placeholder.
+    // Prázdný stav = pozvánka. Stejná mřížka kategorií jako plný stav, ale
+    // každá karta otevře přidání s předvybranou kategorií (žádná falešná data),
+    // takže uživatel hned vidí, co může sledovat, a je to rovnou vstup do přidání.
     private var emptyState: some View {
-        VStack(spacing: 20) {
-            VStack(spacing: 16) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(
-                            Color.brandTextSecondary.opacity(0.35),
-                            style: StrokeStyle(lineWidth: 1.5, dash: [6])
-                        )
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 40))
-                        .foregroundStyle(Color.brandAccent.opacity(0.7))
-                }
-                .frame(width: 140, height: 120)
-
-                VStack(spacing: 8) {
-                    Text("Zatím nic nesleduješ")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(Color.brandTextPrimary)
-                    Text("Přidej první věc — auto, dům, mazlíčka nebo cokoliv, na co nechceš zapomenout.")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Color.brandTextSecondary)
-                        .multilineTextAlignment(.center)
-                }
-                .padding(.horizontal, 8)
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Co chceš hlídat?")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(Color.brandTextPrimary)
+                Text("Vyber kategorii a přidej první termín — o připomenutí se postará Kontrolka.")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color.brandTextSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(24)
-            .frame(maxWidth: .infinity)
+            .padding(.bottom, 4)
+
+            inviteFeatured(.vehicle)
+
+            HStack(spacing: 13) {
+                inviteSmall(.pet)
+                inviteSmall(.homeMaintenance)
+            }
+
+            HStack(spacing: 13) {
+                inviteSmall(.document)
+                inviteSmall(.other)
+            }
+        }
+    }
+
+    // Featured pozvánka (vozidlo) — stejné proporce jako VehicleWidget.
+    private func inviteFeatured(_ category: Category) -> some View {
+        Button {
+            addCategory = category
+        } label: {
+            VStack(spacing: 10) {
+                HStack {
+                    Text(category.widgetTitle)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Color.brandTextPrimary)
+                    Spacer()
+                    addPill
+                }
+
+                categoryIllustration(category)
+                    .frame(height: 130)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityHidden(true)
+            }
+            .padding(16)
             .background(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .fill(Color.surfaceCardBase)
             )
-
-            // Čárkovaná šipka směrem k „+" v baru
-            VStack(spacing: 4) {
-                VDashedLine()
-                    .stroke(
-                        Color.brandAccent.opacity(0.55),
-                        style: StrokeStyle(lineWidth: 3, dash: [6])
-                    )
-                    .frame(width: 3, height: 120)
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Color.brandAccent.opacity(0.55))
-            }
-            .frame(maxWidth: .infinity)
+            .shadow(color: .black.opacity(0.06), radius: 15, y: 6)
         }
+        .buttonStyle(PressableCardStyle())
+        .accessibilityLabel("Přidat kategorii \(category.widgetTitle)")
+    }
+
+    // Malá pozvánka — stejné proporce jako SmallCategoryWidget.
+    private func inviteSmall(_ category: Category) -> some View {
+        Button {
+            addCategory = category
+        } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                ZStack(alignment: .topTrailing) {
+                    categoryIllustration(category)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 78)
+                    plusBadge
+                }
+
+                Text(category.widgetTitle)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color.brandTextPrimary)
+
+                Text("Přidat")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.brandAccent)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.surfaceCardBase)
+            )
+        }
+        .buttonStyle(PressableCardStyle())
+        .accessibilityLabel("Přidat kategorii \(category.widgetTitle)")
+    }
+
+    @ViewBuilder
+    private func categoryIllustration(_ category: Category) -> some View {
+        if let name = category.illustrationName {
+            Image(name)
+                .resizable()
+                .scaledToFit()
+        } else {
+            Image(systemName: category.iconName)
+                .font(.system(size: 40))
+                .foregroundStyle(Color.brandAccent)
+        }
+    }
+
+    // „Přidat" pill pro featured kartu
+    private var addPill: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "plus")
+                .font(.system(size: 12, weight: .bold))
+            Text("Přidat")
+                .font(.system(size: 13, weight: .semibold))
+        }
+        .foregroundStyle(Color.brandAccent)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(Capsule().fill(Color.brandAccent.opacity(0.12)))
+    }
+
+    // Kruhové „+" v rohu ilustrace u malých karet
+    private var plusBadge: some View {
+        Image(systemName: "plus")
+            .font(.system(size: 11, weight: .bold))
+            .foregroundStyle(Color.white)
+            .padding(6)
+            .background(Circle().fill(Color.brandAccent))
     }
 }
 
-/// Svislá čára (pro čárkovaný ukazatel v prázdném stavu).
-struct VDashedLine: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.midX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
-        return path
-    }
+// Otevírání add sheetu z pozvánkových karet přes .sheet(item:)
+extension Category: Identifiable {
+    public var id: String { rawValue }
 }
 
 // MARK: - GreetingCard
