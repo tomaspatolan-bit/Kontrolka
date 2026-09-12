@@ -12,6 +12,7 @@ enum AppTab: Hashable {
     case home
     case overview
     case profile
+    case add // oddělený trailing slot pro „+" (Tab(role: .search))
 }
 
 struct MainTabView: View {
@@ -21,23 +22,40 @@ struct MainTabView: View {
     @State private var showingCamera = false
     @State private var showingAddSheet = false
     @State private var capturedImage: UIImage?
-    @Namespace private var tabHighlightNS
+
+    // „+" je oddělené trailing tlačítko přes Tab(role: .search) — nativní TabView
+    // ho vykreslí samostatně vpravo. Výběr .add ale NENÍ přepnutí obsahu: jen
+    // otevře dialog a selection necháme na aktuálním tabu (žádný „prázdný" tab).
+    private var tabSelection: Binding<AppTab> {
+        Binding(
+            get: { selectedTab },
+            set: { newValue in
+                if newValue == .add {
+                    showingAddOptions = true
+                } else {
+                    selectedTab = newValue
+                }
+            }
+        )
+    }
 
     var body: some View {
-        // Vlastní bottom bar: kapsle se 3 taby VYPLNÍ šířku, oddělené akční „+"
-        // sedí na STEJNÉM řádku vpravo (HStack .center → shodný svislý střed)
-        // s definovaným spacingem. Materiál baru i pluska zůstává nativní Liquid Glass.
-        // safeAreaInset vyhradí obsahu místo, takže nic nemizí za barem.
-        ZStack {
-            currentTab
-                .id(selectedTab)
-                .transition(.opacity) // jemný cross-fade mezi taby
+        TabView(selection: tabSelection) {
+            Tab("Domů", systemImage: "house", value: AppTab.home) {
+                DomuView()
+            }
+            Tab("Přehled", systemImage: "list.bullet", value: AppTab.overview) {
+                ContentView()
+            }
+            Tab("Profil", systemImage: "person", value: AppTab.profile) {
+                ProfileView()
+            }
+            Tab("Přidat", systemImage: "plus", value: AppTab.add, role: .search) {
+                // Obsah se reálně nezobrazí — výběr .add jen otevře dialog.
+                Color.clear
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            bottomBar
-        }
-        .tint(Color.brandAccent) // Brand tint pro sheety i dialogy
+        .tint(Color.brandAccent) // Brand tint pro bar, sheety i dialogy
         .confirmationDialog(
             "Přidat položku",
             isPresented: $showingAddOptions,
@@ -76,119 +94,6 @@ struct MainTabView: View {
                     itemToEdit: nil
                 )
             }
-        }
-    }
-
-    @ViewBuilder
-    private var currentTab: some View {
-        switch selectedTab {
-        case .home:
-            DomuView()
-        case .overview:
-            ContentView()
-        case .profile:
-            ProfileView()
-        }
-    }
-
-    // Řádek dole: kapsle s taby + oddělené „+" (stejný svislý střed díky HStack).
-    private var bottomBar: some View {
-        HStack(spacing: 12) {
-            tabCapsule
-            AddButton {
-                showingAddOptions = true
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 8)
-        .padding(.bottom, 0) // bar níž — jen safe area nad home indikátorem
-    }
-
-    // Kapsle se 3 taby, roztažená přes zbývající šířku vedle „+".
-    // GlassEffectContainer zajišťuje nativní Liquid Glass „morph" highlightu
-    // aktivního tabu mezi jednotlivými položkami.
-    private var tabCapsule: some View {
-        GlassEffectContainer(spacing: 8) {
-            HStack(spacing: 0) {
-                NavItem(tab: .home, icon: "house", label: "Domů", selection: $selectedTab, namespace: tabHighlightNS)
-                NavItem(tab: .overview, icon: "list.bullet", label: "Přehled", selection: $selectedTab, namespace: tabHighlightNS)
-                NavItem(tab: .profile, icon: "person", label: "Profil", selection: $selectedTab, namespace: tabHighlightNS)
-            }
-            .padding(.vertical, 6)
-            .padding(.horizontal, 6)
-        }
-        .frame(maxWidth: .infinity)
-        .modifier(GlassCapsuleSurface())
-    }
-}
-
-// MARK: - Položka baru
-
-private struct NavItem: View {
-    let tab: AppTab
-    let icon: String
-    let label: String
-    @Binding var selection: AppTab
-    var namespace: Namespace.ID
-
-    private var isSelected: Bool { selection == tab }
-
-    var body: some View {
-        Button {
-            withAnimation(.snappy(duration: 0.35)) {
-                selection = tab
-            }
-        } label: {
-            VStack(spacing: 3) {
-                Image(systemName: icon)
-                    .font(.system(size: 20, weight: isSelected ? .semibold : .regular))
-                    .symbolVariant(isSelected ? .fill : .none)
-                Text(label)
-                    .font(.system(size: 10, weight: .medium))
-                    .lineLimit(1)
-            }
-            .foregroundStyle(isSelected ? Color.brandAccent : Color.brandTextSecondary)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 7)
-            .background { highlight }
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(label)
-        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
-    }
-
-    // Nativní focus na aktivní tab: Liquid Glass highlight, který se přes
-    // glassEffectID v GlassEffectContainer „přelije" (morph) mezi taby.
-    @ViewBuilder
-    private var highlight: some View {
-        if isSelected {
-            Capsule()
-                .fill(Color.clear)
-                .glassEffect(
-                    .regular.tint(Color.brandAccent.opacity(0.28)).interactive(),
-                    in: Capsule()
-                )
-                .glassEffectID("activeTabHighlight", in: namespace)
-        }
-    }
-}
-
-/// Pozadí kapsle baru — Liquid Glass na iOS 26+, jinak materiál/plná výplň.
-private struct GlassCapsuleSurface: ViewModifier {
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-
-    func body(content: Content) -> some View {
-        if #available(iOS 26, *) {
-            content.glassEffect(.regular, in: Capsule())
-        } else {
-            content
-                .background(
-                    reduceTransparency
-                        ? AnyShapeStyle(Color.surfaceCardBase)
-                        : AnyShapeStyle(.ultraThinMaterial),
-                    in: Capsule()
-                )
-                .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
         }
     }
 }
