@@ -21,6 +21,7 @@ struct MainTabView: View {
     @State private var showingCamera = false
     @State private var showingAddSheet = false
     @State private var capturedImage: UIImage?
+    @Namespace private var tabHighlightNS
 
     var body: some View {
         // Vlastní bottom bar: kapsle se 3 taby VYPLNÍ šířku, oddělené akční „+"
@@ -100,18 +101,22 @@ struct MainTabView: View {
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)
-        .padding(.bottom, 6)
+        .padding(.bottom, 0) // bar níž — jen safe area nad home indikátorem
     }
 
     // Kapsle se 3 taby, roztažená přes zbývající šířku vedle „+".
+    // GlassEffectContainer zajišťuje nativní Liquid Glass „morph" highlightu
+    // aktivního tabu mezi jednotlivými položkami.
     private var tabCapsule: some View {
-        HStack(spacing: 0) {
-            NavItem(tab: .home, icon: "house", label: "Domů", selection: $selectedTab)
-            NavItem(tab: .overview, icon: "list.bullet", label: "Přehled", selection: $selectedTab)
-            NavItem(tab: .profile, icon: "person", label: "Profil", selection: $selectedTab)
+        GlassEffectContainer(spacing: 8) {
+            HStack(spacing: 0) {
+                NavItem(tab: .home, icon: "house", label: "Domů", selection: $selectedTab, namespace: tabHighlightNS)
+                NavItem(tab: .overview, icon: "list.bullet", label: "Přehled", selection: $selectedTab, namespace: tabHighlightNS)
+                NavItem(tab: .profile, icon: "person", label: "Profil", selection: $selectedTab, namespace: tabHighlightNS)
+            }
+            .padding(.vertical, 6)
+            .padding(.horizontal, 6)
         }
-        .padding(.vertical, 9)
-        .padding(.horizontal, 10)
         .frame(maxWidth: .infinity)
         .modifier(GlassCapsuleSurface())
     }
@@ -124,12 +129,13 @@ private struct NavItem: View {
     let icon: String
     let label: String
     @Binding var selection: AppTab
+    var namespace: Namespace.ID
 
     private var isSelected: Bool { selection == tab }
 
     var body: some View {
         Button {
-            withAnimation(.snappy(duration: 0.25)) {
+            withAnimation(.snappy(duration: 0.35)) {
                 selection = tab
             }
         } label: {
@@ -143,10 +149,27 @@ private struct NavItem: View {
             }
             .foregroundStyle(isSelected ? Color.brandAccent : Color.brandTextSecondary)
             .frame(maxWidth: .infinity)
+            .padding(.vertical, 7)
+            .background { highlight }
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+    }
+
+    // Nativní focus na aktivní tab: Liquid Glass highlight, který se přes
+    // glassEffectID v GlassEffectContainer „přelije" (morph) mezi taby.
+    @ViewBuilder
+    private var highlight: some View {
+        if isSelected {
+            Capsule()
+                .fill(Color.clear)
+                .glassEffect(
+                    .regular.tint(Color.brandAccent.opacity(0.28)).interactive(),
+                    in: Capsule()
+                )
+                .glassEffectID("activeTabHighlight", in: namespace)
+        }
     }
 }
 
