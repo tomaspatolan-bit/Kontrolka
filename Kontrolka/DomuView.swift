@@ -93,7 +93,7 @@ struct DomuView: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 24)
-                    .padding(.bottom, 16) // rezerva pro vyvýšené plusko (bar řeší safeAreaInset)
+                    .padding(.bottom, 16) // spodní rezerva obsahu (místo pro tab bar drží TabView)
                 }
             }
             .navigationDestination(for: Category.self) { category in
@@ -166,9 +166,9 @@ struct DomuView: View {
                 VDashedLine()
                     .stroke(
                         Color.brandAccent.opacity(0.55),
-                        style: StrokeStyle(lineWidth: 2, dash: [6])
+                        style: StrokeStyle(lineWidth: 3, dash: [6])
                     )
-                    .frame(width: 2, height: 90)
+                    .frame(width: 3, height: 120)
                 Image(systemName: "chevron.down")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(Color.brandAccent.opacity(0.55))

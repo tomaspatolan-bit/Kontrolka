@@ -2,8 +2,9 @@
 //  AddButton.swift
 //  Kontrolka
 //
-//  Prostřední "+" tlačítko navigace. Jediná custom komponenta tab baru —
-//  nativní TabView vyvýšené akční tlačítko uprostřed nepodporuje.
+//  Oddělené akční "+" tlačítko ukotvené vpravo dole vedle nativního TabView baru.
+//  SwiftUI nemá tab-roli pro akci (jediný oddělený slot je .search s lupou),
+//  proto je "+" samostatná komponenta.
 //  iOS 26+: Liquid Glass s brand tintem. Starší: plná brand výplň.
 //
 
