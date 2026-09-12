@@ -2,14 +2,15 @@
 //  OnboardingView.swift
 //  Kontrolka
 //
-//  Onboarding dle Figma sekce Onboarding: Uvítání → Hodnota/Notifikace → Profil.
-//  Motion (Camera Zoom na 2. kroku) záměrně neimplementován — statický náhled.
-//  Profil se ukládá do @AppStorage; napojení do GreetingCard/Profilu zatím ne.
+//  Onboarding: Uvítání → Hodnota/Notifikace → Profil → První položka.
+//  V posledním kroku si uživatel přidá první sledovanou věc (nebo přeskočí),
+//  aby přistál rovnou na plném dashboardu. Profil se ukládá do @AppStorage.
 //
 
 import SwiftUI
 
 struct OnboardingView: View {
+    @Environment(\.modelContext) private var modelContext
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @AppStorage(ProfileStorage.nameKey) private var profileName = ""
     @AppStorage(ProfileStorage.birthDateKey) private var profileBirthDate = ""
@@ -17,6 +18,7 @@ struct OnboardingView: View {
     @State private var step = 0
     @State private var name = ""
     @State private var birthDate = Calendar.current.date(byAdding: .year, value: -30, to: Date()) ?? Date()
+    @State private var addCategory: Category?
 
     var body: some View {
         ZStack {
@@ -26,10 +28,15 @@ struct OnboardingView: View {
             switch step {
             case 0: welcomeStep
             case 1: valueStep
-            default: profileStep
+            case 2: profileStep
+            default: addFirstItemStep
             }
         }
         .animation(.easeInOut(duration: 0.3), value: step)
+        .sheet(item: $addCategory) { category in
+            // Po uložení dokončíme onboarding → uživatel přistane na plném dashboardu.
+            AddEditItemView(modelContext: modelContext, initialCategory: category, onSaved: { finish() })
+        }
     }
 
     // MARK: - 1. Uvítání
@@ -166,11 +173,96 @@ struct OnboardingView: View {
             Spacer()
 
             OnboardingPrimaryButton(title: "Pokračovat") {
-                finish()
+                Haptics.impact(.light)
+                withAnimation(.easeInOut(duration: 0.3)) { step = 3 }
             }
             .padding(.bottom, 40)
         }
         .padding(.horizontal, 28)
+    }
+
+    // MARK: - 4. První položka
+
+    private var addFirstItemStep: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Přidej první věc")
+                .font(.system(size: 24, weight: .bold))
+                .foregroundStyle(Color.brandTextPrimary)
+                .padding(.top, 90)
+
+            Text("Vyber, co chceš hlídat jako první. Zbytek klidně doplníš později.")
+                .font(.system(size: 16))
+                .foregroundStyle(Color.brandTextSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 12)
+
+            ScrollView(showsIndicators: false) {
+                LazyVGrid(
+                    columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
+                    spacing: 12
+                ) {
+                    ForEach(onboardingCategories, id: \.self) { category in
+                        categoryTile(category)
+                    }
+                }
+                .padding(.top, 24)
+                .padding(.bottom, 12)
+            }
+
+            Button("Zatím přeskočit") {
+                finish()
+            }
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundStyle(Color.brandTextSecondary)
+            .frame(maxWidth: .infinity)
+            .padding(.top, 8)
+            .padding(.bottom, 40)
+        }
+        .padding(.horizontal, 28)
+    }
+
+    // Kategorie s ilustracemi nabízené v onboardingu (mají vlastní ilustraci)
+    private var onboardingCategories: [Category] {
+        [.vehicle, .homeMaintenance, .pet, .document, .other]
+    }
+
+    private func categoryTile(_ category: Category) -> some View {
+        Button {
+            Haptics.impact(.light)
+            addCategory = category
+        } label: {
+            VStack(spacing: 10) {
+                categoryIllustration(category)
+                    .frame(height: 70)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityHidden(true)
+                Text(category.widgetTitle)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color.brandTextPrimary)
+            }
+            .padding(.vertical, 16)
+            .padding(.horizontal, 12)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.surfaceCardBase)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Přidat kategorii \(category.widgetTitle)")
+    }
+
+    @ViewBuilder
+    private func categoryIllustration(_ category: Category) -> some View {
+        if let name = category.illustrationName {
+            Image(name)
+                .resizable()
+                .scaledToFit()
+        } else {
+            Image(systemName: category.iconName)
+                .font(.system(size: 36))
+                .foregroundStyle(Color.brandAccent)
+        }
     }
 
     // MARK: - Pomocné
@@ -232,4 +324,5 @@ struct OnboardingPrimaryButton: View {
 
 #Preview {
     OnboardingView()
+        .modelContainer(for: TrackedItem.self, inMemory: true)
 }
