@@ -13,7 +13,10 @@ struct AddEditItemView: View {
     @Environment(\.dismiss) private var dismiss
     let modelContext: ModelContext
     let itemToEdit: TrackedItem?
-    
+    /// Volitelný callback po úspěšném uložení. Když je nastaven, řízení převezme
+    /// volající (např. onboarding dokončí flow) místo výchozího `dismiss()`.
+    let onSaved: (() -> Void)?
+
     @State private var title: String
     @State private var category: Category
     @State private var dueDate: Date
@@ -22,9 +25,10 @@ struct AddEditItemView: View {
     @State private var photoData: Data?
     @State private var showingPhotoPreview = false
     
-    init(modelContext: ModelContext, initialPhotoData: Data? = nil, initialCategory: Category? = nil, itemToEdit: TrackedItem? = nil) {
+    init(modelContext: ModelContext, initialPhotoData: Data? = nil, initialCategory: Category? = nil, itemToEdit: TrackedItem? = nil, onSaved: (() -> Void)? = nil) {
         self.modelContext = modelContext
         self.itemToEdit = itemToEdit
+        self.onSaved = onSaved
 
         _title = State(initialValue: itemToEdit?.title ?? "")
         _category = State(initialValue: itemToEdit?.category ?? initialCategory ?? .vehicle)
@@ -229,8 +233,13 @@ struct AddEditItemView: View {
                 await NotificationManager.shared.scheduleNotifications(for: newItem)
             }
         }
-        
-        dismiss()
+
+        // Když volající předal onSaved (onboarding), převezme řízení; jinak zavřeme sheet.
+        if let onSaved {
+            onSaved()
+        } else {
+            dismiss()
+        }
     }
 }
 
