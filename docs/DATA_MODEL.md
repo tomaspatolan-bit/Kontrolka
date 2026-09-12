@@ -95,18 +95,29 @@ Soubor: `Kontrolka/Managers/CalendarManager.swift`. `@MainActor`, singleton (`.s
 
 ## Views
 
-Aplikace má **3 obrazovky**. Navigace je čistě `NavigationStack` (push), žádný tab bar.
+Navigační shell je `MainTabView` (`App/`): nativní `TabView` se **3 taby** — **Domů** (`DomuView`,
+dashboard), **Přehled** (`ContentView`, seznam) a **Profil** (`ProfileView`). Akční **„+"** je oddělený
+trailing slot přes `Tab(role: .search)`; nepřepíná obsah, jen otevře confirmation dialog (přidat ručně /
+vyfotit doklad) → `AddEditItemView`. Uvnitř tabů je navigace `NavigationStack` (push) + sheety.
+Onboarding (`OnboardingView`) běží před shellem a v posledním kroku nechá uživatele přidat první položku.
 
-### `ContentView`
-Soubor: `Kontrolka/Views/Home/ContentView.swift`. Hlavní seznam.
+### `DomuView` (tab Domů)
+Soubor: `Kontrolka/Views/Home/DomuView.swift`. Dashboard s uvítací kartou a widgety kategorií
+(vozidlo jako featured + mřížka ostatních). Prázdný stav = pozvánka: mřížka kategorií s ilustracemi,
+ťuknutí otevře `AddEditItemView` s předvybranou kategorií. Push do `CategoryDetailView`.
+
+### `ContentView` (tab Přehled)
+Soubor: `Kontrolka/Views/Home/ContentView.swift`. Seznam všech termínů.
 - `@Query(sort: \TrackedItem.dueDate, order: .forward)` — řazení podle nejbližšího termínu.
-- Řádek: barevná tečka urgence + název + `dueDateFormatted`.
-- Empty state pro prázdný seznam, swipe-to-delete, tlačítko „+" v toolbaru.
-- Push do `ItemDetailView`, „+" otevírá `AddEditItemView` jako sheet.
+- Souhrnná karta (`PrehledSummaryCard`) + karty položek (`TrackedItemCardView`) s tečkou urgence.
+- Prázdný seznam → `ContentUnavailableView`. Swipe-to-delete (nejdřív zruší notifikace, pak smaže).
+- Push do `ItemDetailView`. Přidávání jde přes „+" v tab baru, ne z této obrazovky.
 
 ### `AddEditItemView`
 Soubor: `Kontrolka/Views/Items/AddEditItemView.swift`. Přidání i editace (modal sheet).
-- Parametry: `modelContext`, `itemToEdit: TrackedItem?` (`nil` = přidání).
+- Parametry: `modelContext`, volitelně `initialCategory` (předvybraná kategorie), `initialPhotoData`
+  (fotka z kamery), `itemToEdit` (`nil` = přidání) a `onSaved` (callback po uložení — když je nastaven,
+  převezme řízení místo `dismiss()`; využívá ho onboarding).
 - Pole: název (povinné), kategorie (Picker), datum (DatePicker), poznámka, fotka (`PhotosPicker`).
 - Náhled fotky s možností smazání. „Uložit" je disabled, dokud je název prázdný.
 
