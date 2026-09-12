@@ -62,8 +62,33 @@ final class NotificationManager {
                 print("Chyba při plánování notifikace: \(error)")
             }
         }
+
+        // Po naplánování prioritizuj: iOS drží max 64 lokálních notifikací,
+        // nad limit je tiše zahazuje. Necháme naplánované jen nejbližší termíny.
+        await enforceGlobalLimit()
     }
-    
+
+    /// iOS limit je 64 naplánovaných lokálních notifikací na aplikaci. Když se
+    /// blížíme stropu, ponecháme jen `max` nejbližších (podle času spuštění) a
+    /// nejvzdálenější zrušíme — položky s bližším termínem tak mají přednost.
+    /// (Vědomý mírný „centrální scheduler" — jinak by se nadlimitní notifikace
+    /// tiše zahodily.)
+    private func enforceGlobalLimit(max: Int = 60) async {
+        let center = UNUserNotificationCenter.current()
+        let pending = await center.pendingNotificationRequests()
+        guard pending.count > max else { return }
+
+        let farFuture = Date.distantFuture
+        let sorted = pending.sorted { lhs, rhs in
+            let l = (lhs.trigger as? UNCalendarNotificationTrigger)?.nextTriggerDate() ?? farFuture
+            let r = (rhs.trigger as? UNCalendarNotificationTrigger)?.nextTriggerDate() ?? farFuture
+            return l < r
+        }
+
+        let identifiersToRemove = sorted.dropFirst(max).map { $0.identifier }
+        center.removePendingNotificationRequests(withIdentifiers: identifiersToRemove)
+    }
+
     func cancelNotifications(for item: TrackedItem) async {
         let center = UNUserNotificationCenter.current()
         let pendingRequests = await center.pendingNotificationRequests()

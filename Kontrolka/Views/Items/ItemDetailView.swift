@@ -86,7 +86,7 @@ struct ItemDetailView: View {
                     .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(Color.brandTextPrimary)
                     .multilineTextAlignment(.center)
-                Text(item.category.rawValue)
+                Text(item.subcategory.map { "\(item.category.rawValue) · \($0)" } ?? item.category.rawValue)
                     .font(.system(size: 14))
                     .foregroundStyle(Color.brandTextSecondary)
             }
