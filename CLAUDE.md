@@ -6,7 +6,8 @@ ne popis jednotlivých views a polí — ten je v [`docs/DATA_MODEL.md`](docs/DA
 ## Tech stack
 
 - Nativní iOS app, **SwiftUI + SwiftData**, Swift Concurrency (`async`/`await`).
-- Target **iOS 17+**. Frameworky: UserNotifications, PhotosUI, EventKit.
+- Deployment target **iOS 26.5** (`IPHONEOS_DEPLOYMENT_TARGET` v projektu). Můžeš používat
+  moderní API včetně Liquid Glass (`.glassEffect`). Frameworky: UserNotifications, PhotosUI, EventKit.
 - **Žádné externí závislosti** — žádné SPM/CocoaPods/Carthage. Vše řeš nativními API.
 - UI je celé **v češtině** (žádná lokalizace v MVP — viz níže).
 
@@ -18,7 +19,12 @@ ne popis jednotlivých views a polí — ten je v [`docs/DATA_MODEL.md`](docs/DA
 - Async operace z UI spouštěj přes `Task { ... }`, ne přímo z akce tlačítka.
 - Barvy jen pro urgenci (`Urgency` → brand barvy v `BrandColors.swift`); jinak systémové barvy
   a fonty, Dynamic Type, Dark Mode, VoiceOver labely na interaktivních prvcích.
-- Navigace je `NavigationStack` (push) + sheety. **Bez tab baru.**
+- Uvnitř tabů je navigace `NavigationStack` (push) + sheety.
+- **Vlastní bottom bar** (`MainTabView.swift`): Liquid Glass kapsle se 3 taby (**Domů**, **Přehled**,
+  **Profil**) roztažená přes šířku, plus **oddělené akční „+"** (`AddButton`) na stejném řádku vpravo.
+  Není to nativní `TabView` (ten neumí akční „+" oddělený vpravo se správným zarovnáním) — layout
+  řídíme sami v `safeAreaInset(edge: .bottom)`, materiál zůstává nativní Liquid Glass. Přepínání tabů
+  jde přes `AppTab` + `currentTab`. „+" otevírá confirmation dialog (ručně / vyfotit).
 
 ## Klíčová pravidla (invarianty)
 
@@ -47,7 +53,6 @@ Následující je **záměrně vynecháno**. Nepřidávej to spontánně; pokud 
 - B2B / partnerské / lead-gen funkce
 - Push notifikace ze serveru (jen lokální notifikace)
 - Batching notifikací / centralizovaný scheduler (pozor na iOS limit 64 notifikací)
-- Tab bar navigace
 - Grafy, statistiky, dashboardy
 - Lokalizace (jen čeština)
 - Komprese fotek před uložením
