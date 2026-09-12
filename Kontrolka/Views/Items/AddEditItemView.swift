@@ -4,10 +4,22 @@
 //
 //  Created by Tomáš PATOLÁN on 04.09.2026.
 //
+//  Přidání i editace. U asset kategorií (Vozidlo/Domácnost/Mazlíček) je přidání
+//  v režimu „věc + víc termínů": název věci + multi-chip termínů, každý s vlastním
+//  datem → vytvoří TrackedThing + sadu položek. Ploché kategorie a editace jedné
+//  položky používají klasický formulář (název, datum, podkategorie, poznámka, foto).
+//
 
 import SwiftUI
 import SwiftData
 import PhotosUI
+
+/// Rozpracovaný termín v add flow věci (název + datum).
+private struct DeadlineDraft: Identifiable, Equatable {
+    let id = UUID()
+    var name: String
+    var date: Date
+}
 
 struct AddEditItemView: View {
     @Environment(\.dismiss) private var dismiss
@@ -25,7 +37,12 @@ struct AddEditItemView: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var photoData: Data?
     @State private var showingPhotoPreview = false
-    
+
+    // Asset add flow (věc + víc termínů)
+    @State private var thingName: String = ""
+    @State private var deadlines: [DeadlineDraft] = []
+    @State private var customDeadline: String = ""
+
     init(modelContext: ModelContext, initialPhotoData: Data? = nil, initialCategory: Category? = nil, itemToEdit: TrackedItem? = nil, onSaved: (() -> Void)? = nil) {
         self.modelContext = modelContext
         self.itemToEdit = itemToEdit
@@ -34,9 +51,9 @@ struct AddEditItemView: View {
         _title = State(initialValue: itemToEdit?.title ?? "")
         _category = State(initialValue: itemToEdit?.category ?? initialCategory ?? .vehicle)
         _subcategory = State(initialValue: itemToEdit?.subcategory ?? "")
-        _dueDate = State(initialValue: itemToEdit?.dueDate ?? Calendar.current.date(byAdding: .month, value: 1, to: Date()) ?? Date())
+        _dueDate = State(initialValue: itemToEdit?.dueDate ?? Self.defaultDate)
         _note = State(initialValue: itemToEdit?.note ?? "")
-        
+
         // Pokud je initialPhotoData, použij ji; jinak použij photoData z itemToEdit
         if let initialPhotoData {
             _photoData = State(initialValue: initialPhotoData)
@@ -44,7 +61,24 @@ struct AddEditItemView: View {
             _photoData = State(initialValue: itemToEdit?.photoData)
         }
     }
-    
+
+    private static var defaultDate: Date {
+        Calendar.current.date(byAdding: .month, value: 1, to: Date()) ?? Date()
+    }
+
+    /// Přidání do asset kategorie = režim „věc + víc termínů".
+    private var isAssetAdd: Bool {
+        itemToEdit == nil && category.usesThings
+    }
+
+    private var canSave: Bool {
+        if isAssetAdd {
+            return !thingName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !deadlines.isEmpty
+        } else {
+            return !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+    }
+
     var body: some View {
         ZStack {
             // Pozadí Gradient/Edge (světlá broskvová)
@@ -56,63 +90,11 @@ struct AddEditItemView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
-                        // Název
-                        TextField("Název", text: $title)
-                            .font(.system(size: 17))
-                            .padding(.vertical, 16)
-                            .accessibilityLabel("Název položky")
-                        rowDivider
-
-                        // Kategorie
-                        HStack {
-                            Text("Kategorie")
-                                .font(.system(size: 17))
-                                .foregroundStyle(Color.brandTextPrimary)
-                            Spacer()
-                            Picker("", selection: $category) {
-                                ForEach(Category.allCases, id: \.self) { category in
-                                    Text(category.rawValue).tag(category)
-                                }
-                            }
-                            .pickerStyle(.menu)
-                            .tint(Color.brandTextPrimary)
-                            .accessibilityLabel("Kategorie")
+                        if isAssetAdd {
+                            assetForm
+                        } else {
+                            flatForm
                         }
-                        .padding(.vertical, 12)
-                        rowDivider
-
-                        // Datum vypršení
-                        HStack {
-                            Text("Datum vypršení")
-                                .font(.system(size: 17))
-                                .foregroundStyle(Color.brandTextPrimary)
-                            Spacer()
-                            DatePicker("", selection: $dueDate, displayedComponents: .date)
-                                .labelsHidden()
-                                .tint(Color.brandAccent)
-                                .accessibilityLabel("Datum vypršení")
-                        }
-                        .padding(.vertical, 12)
-
-                        // Podkategorie
-                        sectionLabel("Podkategorie (volitelné)")
-                        TextField("Např. STK, pneu, rozvody…", text: $subcategory)
-                            .font(.system(size: 17))
-                            .padding(.bottom, 8)
-                            .accessibilityLabel("Podkategorie")
-                        subcategoryChips
-
-                        // Poznámka
-                        sectionLabel("Poznámka (volitelné)")
-                        TextField("Poznámka", text: $note, axis: .vertical)
-                            .font(.system(size: 17))
-                            .lineLimit(3...6)
-                            .padding(.bottom, 8)
-                            .accessibilityLabel("Poznámka")
-
-                        // Fotka
-                        sectionLabel("Fotka (volitelné)")
-                        photoSection
                     }
                     .padding(.horizontal, 24)
                     .padding(.top, 8)
@@ -136,9 +118,14 @@ struct AddEditItemView: View {
 
     // MARK: - Header
 
+    private var headerTitle: String {
+        if itemToEdit != nil { return "Upravit položku" }
+        return category.usesThings ? "Nová věc" : "Nová položka"
+    }
+
     private var header: some View {
         ZStack {
-            Text(itemToEdit == nil ? "Nová položka" : "Upravit položku")
+            Text(headerTitle)
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(Color.brandTextPrimary)
 
@@ -147,10 +134,10 @@ struct AddEditItemView: View {
                     dismiss()
                 }
                 Spacer()
-                pillButton("Uložit", textColor: title.isEmpty ? Color.brandTextSecondary : Color.brandAccent) {
+                pillButton("Uložit", textColor: canSave ? Color.brandAccent : Color.brandTextSecondary) {
                     saveItem()
                 }
-                .disabled(title.isEmpty)
+                .disabled(!canSave)
             }
         }
         .padding(.horizontal, 20)
@@ -170,7 +157,167 @@ struct AddEditItemView: View {
         .buttonStyle(.plain)
     }
 
-    // Chips s návrhy podkategorií podle vybrané kategorie. Ťuknutí vybere/zruší.
+    // MARK: - Klasický formulář (ploché kategorie + editace)
+
+    @ViewBuilder
+    private var flatForm: some View {
+        TextField("Název", text: $title)
+            .font(.system(size: 17))
+            .padding(.vertical, 16)
+            .accessibilityLabel("Název položky")
+        rowDivider
+
+        categoryRow
+        rowDivider
+
+        // Datum vypršení
+        HStack {
+            Text("Datum vypršení")
+                .font(.system(size: 17))
+                .foregroundStyle(Color.brandTextPrimary)
+            Spacer()
+            DatePicker("", selection: $dueDate, displayedComponents: .date)
+                .labelsHidden()
+                .tint(Color.brandAccent)
+                .accessibilityLabel("Datum vypršení")
+        }
+        .padding(.vertical, 12)
+
+        // Podkategorie
+        sectionLabel("Podkategorie (volitelné)")
+        TextField("Např. STK, pneu, rozvody…", text: $subcategory)
+            .font(.system(size: 17))
+            .padding(.bottom, 8)
+            .accessibilityLabel("Podkategorie")
+        subcategoryChips
+
+        // Poznámka
+        sectionLabel("Poznámka (volitelné)")
+        TextField("Poznámka", text: $note, axis: .vertical)
+            .font(.system(size: 17))
+            .lineLimit(3...6)
+            .padding(.bottom, 8)
+            .accessibilityLabel("Poznámka")
+
+        // Fotka
+        sectionLabel("Fotka (volitelné)")
+        photoSection
+    }
+
+    // MARK: - Asset formulář (věc + víc termínů)
+
+    @ViewBuilder
+    private var assetForm: some View {
+        TextField("Název (např. Škoda Octavia)", text: $thingName)
+            .font(.system(size: 17))
+            .padding(.vertical, 16)
+            .accessibilityLabel("Název věci")
+        rowDivider
+
+        categoryRow
+        rowDivider
+
+        sectionLabel("Termíny")
+        Text("Vyber, co u této věci hlídat. Ke každému nastav datum.")
+            .font(.system(size: 13))
+            .foregroundStyle(Color.brandTextSecondary)
+            .padding(.bottom, 10)
+
+        deadlineChips
+
+        // Vlastní termín
+        HStack(spacing: 10) {
+            TextField("Vlastní termín", text: $customDeadline)
+                .font(.system(size: 16))
+                .accessibilityLabel("Vlastní termín")
+            Button {
+                addCustomDeadline()
+            } label: {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 22))
+                    .foregroundStyle(customDeadlineTrimmed == nil ? Color.brandTextSecondary : Color.brandAccent)
+            }
+            .buttonStyle(.plain)
+            .disabled(customDeadlineTrimmed == nil)
+        }
+        .padding(.top, 6)
+        .padding(.bottom, 4)
+
+        // Vybrané termíny s datepickerem
+        ForEach($deadlines) { $deadline in
+            rowDivider
+            HStack(spacing: 8) {
+                Text(deadline.name)
+                    .font(.system(size: 16))
+                    .foregroundStyle(Color.brandTextPrimary)
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                DatePicker("", selection: $deadline.date, displayedComponents: .date)
+                    .labelsHidden()
+                    .tint(Color.brandAccent)
+                Button {
+                    removeDeadline(deadline)
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(Color.brandTextSecondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Odebrat termín \(deadline.name)")
+            }
+            .padding(.vertical, 12)
+        }
+    }
+
+    private var categoryRow: some View {
+        HStack {
+            Text("Kategorie")
+                .font(.system(size: 17))
+                .foregroundStyle(Color.brandTextPrimary)
+            Spacer()
+            Picker("", selection: $category) {
+                ForEach(Category.allCases, id: \.self) { category in
+                    Text(category.rawValue).tag(category)
+                }
+            }
+            .pickerStyle(.menu)
+            .tint(Color.brandTextPrimary)
+            .accessibilityLabel("Kategorie")
+        }
+        .padding(.vertical, 12)
+    }
+
+    // Chips termínů (multi-select) pro asset add flow.
+    @ViewBuilder
+    private var deadlineChips: some View {
+        if !category.subcategorySuggestions.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(category.subcategorySuggestions, id: \.self) { suggestion in
+                        let selected = deadlines.contains { $0.name == suggestion }
+                        Button {
+                            toggleDeadline(suggestion)
+                        } label: {
+                            Text(suggestion)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(selected ? Color.white : Color.brandAccent)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 7)
+                                .background(
+                                    Capsule().fill(selected ? Color.brandAccent : Color.brandAccent.opacity(0.12))
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Termín \(suggestion)")
+                        .accessibilityAddTraits(selected ? [.isSelected] : [])
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+        }
+    }
+
+    // Chips s návrhy podkategorií (single-select) pro plochý formulář.
     @ViewBuilder
     private var subcategoryChips: some View {
         if !category.subcategorySuggestions.isEmpty {
@@ -198,6 +345,33 @@ struct AddEditItemView: View {
                 .padding(.vertical, 2)
             }
         }
+    }
+
+    // MARK: - Deadline helpers
+
+    private var customDeadlineTrimmed: String? {
+        let trimmed = customDeadline.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func toggleDeadline(_ name: String) {
+        if let idx = deadlines.firstIndex(where: { $0.name == name }) {
+            deadlines.remove(at: idx)
+        } else {
+            deadlines.append(DeadlineDraft(name: name, date: Self.defaultDate))
+        }
+    }
+
+    private func addCustomDeadline() {
+        guard let name = customDeadlineTrimmed else { return }
+        if !deadlines.contains(where: { $0.name == name }) {
+            deadlines.append(DeadlineDraft(name: name, date: Self.defaultDate))
+        }
+        customDeadline = ""
+    }
+
+    private func removeDeadline(_ deadline: DeadlineDraft) {
+        deadlines.removeAll { $0.id == deadline.id }
     }
 
     private var trimmedSubcategory: String? {
@@ -249,7 +423,7 @@ struct AddEditItemView: View {
             }
         }
     }
-    
+
     private func saveItem() {
         if let itemToEdit {
             // Úprava existující položky
@@ -260,12 +434,32 @@ struct AddEditItemView: View {
             itemToEdit.note = note.isEmpty ? nil : note
             itemToEdit.photoData = photoData
             itemToEdit.updatedAt = Date()
-            
+
             Task {
                 await NotificationManager.shared.scheduleNotifications(for: itemToEdit)
             }
+        } else if category.usesThings {
+            // Nová věc + sada termínů (každý chip = vlastní položka pod věcí)
+            let thing = TrackedThing(
+                name: thingName.trimmingCharacters(in: .whitespacesAndNewlines),
+                category: category
+            )
+            modelContext.insert(thing)
+
+            for deadline in deadlines {
+                let item = TrackedItem(
+                    title: deadline.name,
+                    category: category,
+                    dueDate: deadline.date,
+                    thing: thing
+                )
+                modelContext.insert(item)
+                Task {
+                    await NotificationManager.shared.scheduleNotifications(for: item)
+                }
+            }
         } else {
-            // Vytvoření nové položky
+            // Nová plochá položka
             let newItem = TrackedItem(
                 title: title,
                 category: category,
@@ -275,7 +469,7 @@ struct AddEditItemView: View {
                 photoData: photoData
             )
             modelContext.insert(newItem)
-            
+
             Task {
                 await NotificationManager.shared.scheduleNotifications(for: newItem)
             }
@@ -293,7 +487,7 @@ struct AddEditItemView: View {
 struct PhotoPreviewView: View {
     @Environment(\.dismiss) private var dismiss
     let image: UIImage
-    
+
     var body: some View {
         NavigationStack {
             Image(uiImage: image)
