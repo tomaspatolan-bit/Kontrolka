@@ -26,6 +26,17 @@ enum Category: String, Codable, CaseIterable {
         }
     }
 
+    /// Kategorie s hierarchií „věc → termíny" (např. konkrétní auto se sadou termínů).
+    /// Ostatní kategorie mají položky ploché (bez rodiče).
+    var usesThings: Bool {
+        switch self {
+        case .vehicle, .homeMaintenance, .pet:
+            return true
+        case .insurance, .warranty, .document, .other:
+            return false
+        }
+    }
+
     /// Návrhy podkategorií (jen jako štítek/seskupení — nic nepředvyplňují).
     /// Uživatel může vybrat z návrhů nebo napsat vlastní text.
     var subcategorySuggestions: [String] {
@@ -61,6 +72,9 @@ final class TrackedItem {
     var createdAt: Date
     var updatedAt: Date
 
+    // Rodičovská „věc" u asset kategorií (Vozidlo/Domácnost/Mazlíček); jinak nil.
+    var thing: TrackedThing?
+
     init(
         id: UUID = UUID(),
         title: String,
@@ -70,6 +84,7 @@ final class TrackedItem {
         note: String? = nil,
         photoData: Data? = nil,
         customReminderDays: [Int]? = nil,
+        thing: TrackedThing? = nil,
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -81,6 +96,7 @@ final class TrackedItem {
         self.note = note
         self.photoData = photoData
         self.customReminderDays = customReminderDays
+        self.thing = thing
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }

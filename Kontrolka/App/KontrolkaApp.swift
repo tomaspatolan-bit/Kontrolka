@@ -15,6 +15,7 @@ struct KontrolkaApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             TrackedItem.self,
+            TrackedThing.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -27,12 +28,36 @@ struct KontrolkaApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if hasCompletedOnboarding {
-                MainTabView()
-            } else {
-                OnboardingView()
+            Group {
+                if hasCompletedOnboarding {
+                    MainTabView()
+                } else {
+                    OnboardingView()
+                }
             }
+            .task { migrateOrphanItemsIntoThings() }
         }
         .modelContainer(sharedModelContainer)
+    }
+
+    /// Jednorázová migrace: dřívější ploché položky asset kategorií obalí každou
+    /// do vlastní „věci" (název = dosavadní title), ať se po zavedení hierarchie
+    /// nic neztratí a objeví se v novém widgetu.
+    @MainActor
+    private func migrateOrphanItemsIntoThings() {
+        let key = "didMigrateThingsV1"
+        guard !UserDefaults.standard.bool(forKey: key) else { return }
+
+        let context = sharedModelContainer.mainContext
+        if let items = try? context.fetch(FetchDescriptor<TrackedItem>()) {
+            for item in items where item.thing == nil && item.category.usesThings {
+                let thing = TrackedThing(name: item.title, category: item.category)
+                context.insert(thing)
+                item.thing = thing
+            }
+            try? context.save()
+        }
+
+        UserDefaults.standard.set(true, forKey: key)
     }
 }
