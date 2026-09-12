@@ -25,6 +25,27 @@ enum Category: String, Codable, CaseIterable {
             return [7]
         }
     }
+
+    /// Návrhy podkategorií (jen jako štítek/seskupení — nic nepředvyplňují).
+    /// Uživatel může vybrat z návrhů nebo napsat vlastní text.
+    var subcategorySuggestions: [String] {
+        switch self {
+        case .vehicle:
+            return ["STK", "Dálniční známka", "Povinné ručení", "Havarijní pojištění", "Přezutí pneu", "Rozvody", "Výměna oleje"]
+        case .insurance:
+            return ["Životní", "Úrazové", "Nemovitost", "Cestovní"]
+        case .homeMaintenance:
+            return ["Revize kotle", "Revize komína", "Hasicí přístroj", "Revize elektro", "Pojištění nemovitosti"]
+        case .pet:
+            return ["Očkování", "Odčervení", "Veterinární prohlídka", "Čip"]
+        case .warranty:
+            return ["Elektronika", "Spotřebič", "Nářadí", "Nábytek"]
+        case .document:
+            return ["Občanský průkaz", "Cestovní pas", "Řidičský průkaz"]
+        case .other:
+            return []
+        }
+    }
 }
 
 @Model
@@ -32,17 +53,19 @@ final class TrackedItem {
     var id: UUID
     var title: String
     var category: Category
+    var subcategory: String?
     var dueDate: Date
     var note: String?
     var photoData: Data?
     var customReminderDays: [Int]?
     var createdAt: Date
     var updatedAt: Date
-    
+
     init(
         id: UUID = UUID(),
         title: String,
         category: Category,
+        subcategory: String? = nil,
         dueDate: Date,
         note: String? = nil,
         photoData: Data? = nil,
@@ -53,6 +76,7 @@ final class TrackedItem {
         self.id = id
         self.title = title
         self.category = category
+        self.subcategory = subcategory
         self.dueDate = dueDate
         self.note = note
         self.photoData = photoData

@@ -40,9 +40,10 @@ struct TrackedItemCardView: View {
                     .font(.headline)
                     .lineLimit(1)
 
-                Text(item.category.rawValue)
+                Text(item.subcategory.map { "\(item.category.rawValue) · \($0)" } ?? item.category.rawValue)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
 
                 Text(item.dueDateFormatted)
                     .font(.subheadline.weight(.semibold)) // Změněno z .medium na .semibold

@@ -19,6 +19,7 @@ struct AddEditItemView: View {
 
     @State private var title: String
     @State private var category: Category
+    @State private var subcategory: String
     @State private var dueDate: Date
     @State private var note: String
     @State private var selectedPhotoItem: PhotosPickerItem?
@@ -32,6 +33,7 @@ struct AddEditItemView: View {
 
         _title = State(initialValue: itemToEdit?.title ?? "")
         _category = State(initialValue: itemToEdit?.category ?? initialCategory ?? .vehicle)
+        _subcategory = State(initialValue: itemToEdit?.subcategory ?? "")
         _dueDate = State(initialValue: itemToEdit?.dueDate ?? Calendar.current.date(byAdding: .month, value: 1, to: Date()) ?? Date())
         _note = State(initialValue: itemToEdit?.note ?? "")
         
@@ -91,6 +93,14 @@ struct AddEditItemView: View {
                                 .accessibilityLabel("Datum vypršení")
                         }
                         .padding(.vertical, 12)
+
+                        // Podkategorie
+                        sectionLabel("Podkategorie (volitelné)")
+                        TextField("Např. STK, pneu, rozvody…", text: $subcategory)
+                            .font(.system(size: 17))
+                            .padding(.bottom, 8)
+                            .accessibilityLabel("Podkategorie")
+                        subcategoryChips
 
                         // Poznámka
                         sectionLabel("Poznámka (volitelné)")
@@ -160,6 +170,41 @@ struct AddEditItemView: View {
         .buttonStyle(.plain)
     }
 
+    // Chips s návrhy podkategorií podle vybrané kategorie. Ťuknutí vybere/zruší.
+    @ViewBuilder
+    private var subcategoryChips: some View {
+        if !category.subcategorySuggestions.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(category.subcategorySuggestions, id: \.self) { suggestion in
+                        let selected = subcategory == suggestion
+                        Button {
+                            subcategory = selected ? "" : suggestion
+                        } label: {
+                            Text(suggestion)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(selected ? Color.white : Color.brandAccent)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 7)
+                                .background(
+                                    Capsule().fill(selected ? Color.brandAccent : Color.brandAccent.opacity(0.12))
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Podkategorie \(suggestion)")
+                        .accessibilityAddTraits(selected ? [.isSelected] : [])
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+        }
+    }
+
+    private var trimmedSubcategory: String? {
+        let trimmed = subcategory.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
     private func sectionLabel(_ text: String) -> some View {
         Text(text)
             .font(.system(size: 13, weight: .semibold))
@@ -210,6 +255,7 @@ struct AddEditItemView: View {
             // Úprava existující položky
             itemToEdit.title = title
             itemToEdit.category = category
+            itemToEdit.subcategory = trimmedSubcategory
             itemToEdit.dueDate = dueDate
             itemToEdit.note = note.isEmpty ? nil : note
             itemToEdit.photoData = photoData
@@ -223,6 +269,7 @@ struct AddEditItemView: View {
             let newItem = TrackedItem(
                 title: title,
                 category: category,
+                subcategory: trimmedSubcategory,
                 dueDate: dueDate,
                 note: note.isEmpty ? nil : note,
                 photoData: photoData
