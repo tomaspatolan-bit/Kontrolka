@@ -23,30 +23,20 @@ struct MainTabView: View {
     @State private var capturedImage: UIImage?
 
     var body: some View {
-        // Nativní TabView (iOS 26 Liquid Glass bar) se třemi taby.
-        // Akční „+" NENÍ tab — je to samostatné Liquid Glass tlačítko ukotvené
-        // vpravo dole vedle baru (SwiftUI nemá tab-roli pro akci; jediný oddělený
-        // slot je .search, který vynucuje lupu). Vizuálně sedí do trailing prostoru,
-        // který centrovaný bar nechává volný.
-        TabView(selection: $selectedTab) {
-            Tab("Domů", systemImage: "house", value: AppTab.home) {
-                DomuView()
-            }
-            Tab("Přehled", systemImage: "list.bullet", value: AppTab.overview) {
-                ContentView()
-            }
-            Tab("Profil", systemImage: "person", value: AppTab.profile) {
-                ProfileView()
-            }
+        // Vlastní bottom bar: kapsle se 3 taby VYPLNÍ šířku, oddělené akční „+"
+        // sedí na STEJNÉM řádku vpravo (HStack .center → shodný svislý střed)
+        // s definovaným spacingem. Materiál baru i pluska zůstává nativní Liquid Glass.
+        // safeAreaInset vyhradí obsahu místo, takže nic nemizí za barem.
+        ZStack {
+            currentTab
+                .id(selectedTab)
+                .transition(.opacity) // jemný cross-fade mezi taby
         }
-        .overlay(alignment: .bottomTrailing) {
-            AddButton {
-                showingAddOptions = true
-            }
-            .padding(.trailing, 16)
-            .padding(.bottom, 4)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            bottomBar
         }
-        .tint(Color.brandAccent) // Brand tint pro bar, sheety i dialogy
+        .tint(Color.brandAccent) // Brand tint pro sheety i dialogy
         .confirmationDialog(
             "Přidat položku",
             isPresented: $showingAddOptions,
@@ -85,6 +75,97 @@ struct MainTabView: View {
                     itemToEdit: nil
                 )
             }
+        }
+    }
+
+    @ViewBuilder
+    private var currentTab: some View {
+        switch selectedTab {
+        case .home:
+            DomuView()
+        case .overview:
+            ContentView()
+        case .profile:
+            ProfileView()
+        }
+    }
+
+    // Řádek dole: kapsle s taby + oddělené „+" (stejný svislý střed díky HStack).
+    private var bottomBar: some View {
+        HStack(spacing: 12) {
+            tabCapsule
+            AddButton {
+                showingAddOptions = true
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .padding(.bottom, 6)
+    }
+
+    // Kapsle se 3 taby, roztažená přes zbývající šířku vedle „+".
+    private var tabCapsule: some View {
+        HStack(spacing: 0) {
+            NavItem(tab: .home, icon: "house", label: "Domů", selection: $selectedTab)
+            NavItem(tab: .overview, icon: "list.bullet", label: "Přehled", selection: $selectedTab)
+            NavItem(tab: .profile, icon: "person", label: "Profil", selection: $selectedTab)
+        }
+        .padding(.vertical, 9)
+        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity)
+        .modifier(GlassCapsuleSurface())
+    }
+}
+
+// MARK: - Položka baru
+
+private struct NavItem: View {
+    let tab: AppTab
+    let icon: String
+    let label: String
+    @Binding var selection: AppTab
+
+    private var isSelected: Bool { selection == tab }
+
+    var body: some View {
+        Button {
+            withAnimation(.snappy(duration: 0.25)) {
+                selection = tab
+            }
+        } label: {
+            VStack(spacing: 3) {
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: isSelected ? .semibold : .regular))
+                    .symbolVariant(isSelected ? .fill : .none)
+                Text(label)
+                    .font(.system(size: 10, weight: .medium))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(isSelected ? Color.brandAccent : Color.brandTextSecondary)
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+    }
+}
+
+/// Pozadí kapsle baru — Liquid Glass na iOS 26+, jinak materiál/plná výplň.
+private struct GlassCapsuleSurface: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content.glassEffect(.regular, in: Capsule())
+        } else {
+            content
+                .background(
+                    reduceTransparency
+                        ? AnyShapeStyle(Color.surfaceCardBase)
+                        : AnyShapeStyle(.ultraThinMaterial),
+                    in: Capsule()
+                )
+                .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
         }
     }
 }
