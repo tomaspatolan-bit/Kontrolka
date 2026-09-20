@@ -135,9 +135,17 @@ struct AddContent: View {
 
 struct VehicleThingContent: View {
     let thing: TrackedThing
+    /// Klik na „+" u nepřidaného standardního termínu (předá typ termínu).
+    let onAddDeadline: (String) -> Void
 
-    private var items: [TrackedItem] {
+    private var addedItems: [TrackedItem] {
         thing.items.sorted { $0.dueDate < $1.dueDate }
+    }
+
+    // Standardní typy termínů kategorie, které ještě nejsou přidané.
+    private var missingTypes: [String] {
+        let addedTitles = Set(addedItems.map { $0.title })
+        return thing.category.subcategorySuggestions.filter { !addedTitles.contains($0) }
     }
 
     var body: some View {
@@ -148,7 +156,7 @@ struct VehicleThingContent: View {
                 .foregroundStyle(Color.brandTextPrimary)
                 .lineLimit(1)
 
-            // Dva sloupce: auto vlevo, výpis termínů vpravo
+            // Dva sloupce: auto vlevo, výpis termínů vpravo (max 3 řádky; přidané mají přednost).
             HStack(alignment: .top, spacing: 14) {
                 Image("IllustrationCar")
                     .resizable()
@@ -156,36 +164,12 @@ struct VehicleThingContent: View {
                     .frame(width: 104)
                     .accessibilityHidden(true)
 
-                Group {
-                    if items.isEmpty {
-                        Text("Zatím žádný termín")
-                            .font(.system(size: 13))
-                            .foregroundStyle(Color.brandTextSecondary)
-                    } else {
-                        VStack(spacing: 8) {
-                            ForEach(items.prefix(4)) { item in
-                                HStack(spacing: 8) {
-                                    Circle()
-                                        .fill(item.urgency.color)
-                                        .frame(width: 7, height: 7)
-                                    Text(item.title)
-                                        .font(.system(size: 13, weight: .medium))
-                                        .foregroundStyle(Color.brandTextPrimary)
-                                        .lineLimit(1)
-                                    Spacer(minLength: 6)
-                                    Text(item.compactDeadline)
-                                        .font(.system(size: 13, weight: .semibold))
-                                        .foregroundStyle(item.urgency.textColor)
-                                        .lineLimit(1)
-                                }
-                            }
-                            if items.count > 4 {
-                                Text("+\(items.count - 4) dalších")
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(Color.brandTextSecondary)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }
+                VStack(spacing: 10) {
+                    ForEach(addedItems.prefix(3)) { item in
+                        dateRow(item)
+                    }
+                    ForEach(missingTypes.prefix(max(0, 3 - min(addedItems.count, 3))), id: \.self) { type in
+                        plusRow(type)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -194,6 +178,41 @@ struct VehicleThingContent: View {
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    // Přidaný termín: typ + datum vypršení.
+    private func dateRow(_ item: TrackedItem) -> some View {
+        HStack(spacing: 8) {
+            Text(item.title)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Color.brandTextPrimary)
+                .lineLimit(1)
+            Spacer(minLength: 6)
+            Text(item.compactDeadline)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(item.urgency.textColor)
+                .lineLimit(1)
+        }
+    }
+
+    // Nepřidaný standardní termín: typ + „+" (přidá rovnou z widgetu).
+    private func plusRow(_ type: String) -> some View {
+        HStack(spacing: 8) {
+            Text(type)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Color.brandTextSecondary)
+                .lineLimit(1)
+            Spacer(minLength: 6)
+            Button {
+                onAddDeadline(type)
+            } label: {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Color.brandAccent)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Přidat termín \(type)")
+        }
     }
 }
 

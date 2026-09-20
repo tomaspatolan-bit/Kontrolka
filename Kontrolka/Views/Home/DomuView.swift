@@ -26,6 +26,7 @@ struct DomuView: View {
     @Namespace private var categoryNS
     @State private var revealed = false
     @State private var addCategory: Category?
+    @State private var addDeadlineRequest: AddDeadlineRequest?
     private static var hasRevealedOnce = false
 
     // Pevné výšky widgetů — prázdné i plné (s tečkami) musí mít stejnou výšku.
@@ -50,8 +51,11 @@ struct DomuView: View {
     private var vehicleScroller: some View {
         WrapScroller(realCount: vehicleThings.count, height: vehicleWidgetHeight) { slot in
             if slot < vehicleThings.count {
-                NavigationLink(value: vehicleThings[slot]) {
-                    VehicleThingContent(thing: vehicleThings[slot])
+                let thing = vehicleThings[slot]
+                NavigationLink(value: thing) {
+                    VehicleThingContent(thing: thing) { type in
+                        addDeadlineRequest = AddDeadlineRequest(thing: thing, type: type)
+                    }
                 }
                 .buttonStyle(.plain)
             } else {
@@ -205,6 +209,9 @@ struct DomuView: View {
             }
             .sheet(item: $addCategory) { category in
                 AddEditItemView(modelContext: modelContext, initialCategory: category)
+            }
+            .sheet(item: $addDeadlineRequest) { request in
+                AddEditItemView(modelContext: modelContext, existingThing: request.thing, preselectedDeadline: request.type)
             }
             .onAppear(perform: triggerReveal)
         }
@@ -362,6 +369,13 @@ struct DomuView: View {
 // Otevírání add sheetu z pozvánkových karet přes .sheet(item:)
 extension Category: Identifiable {
     public var id: String { rawValue }
+}
+
+// Požadavek na přidání konkrétního termínu k věci (klik na „+" ve widgetu vozidla).
+private struct AddDeadlineRequest: Identifiable {
+    let id = UUID()
+    let thing: TrackedThing
+    let type: String
 }
 
 // MARK: - GreetingCard

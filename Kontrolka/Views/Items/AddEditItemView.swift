@@ -42,14 +42,21 @@ struct AddEditItemView: View {
 
     // Asset add flow (věc + víc termínů)
     @State private var thingName: String = ""
-    @State private var deadlines: [DeadlineDraft] = []
+    @State private var deadlines: [DeadlineDraft]
     @State private var customDeadline: String = ""
 
-    init(modelContext: ModelContext, initialPhotoData: Data? = nil, initialCategory: Category? = nil, itemToEdit: TrackedItem? = nil, existingThing: TrackedThing? = nil, onSaved: (() -> Void)? = nil) {
+    init(modelContext: ModelContext, initialPhotoData: Data? = nil, initialCategory: Category? = nil, itemToEdit: TrackedItem? = nil, existingThing: TrackedThing? = nil, preselectedDeadline: String? = nil, onSaved: (() -> Void)? = nil) {
         self.modelContext = modelContext
         self.itemToEdit = itemToEdit
         self.existingThing = existingThing
         self.onSaved = onSaved
+
+        // Předvybraný termín (klik na „+" u věci) → rovnou v builderu, stačí zadat datum.
+        if existingThing != nil, let preselectedDeadline, !preselectedDeadline.isEmpty {
+            _deadlines = State(initialValue: [DeadlineDraft(name: preselectedDeadline, date: Self.defaultDate)])
+        } else {
+            _deadlines = State(initialValue: [])
+        }
 
         _title = State(initialValue: itemToEdit?.title ?? "")
         _category = State(initialValue: itemToEdit?.category ?? existingThing?.category ?? initialCategory ?? .vehicle)
