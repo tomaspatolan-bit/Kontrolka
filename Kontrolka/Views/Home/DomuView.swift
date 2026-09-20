@@ -30,7 +30,7 @@ struct DomuView: View {
     private static var hasRevealedOnce = false
 
     // Pevné výšky widgetů — prázdné i plné (s tečkami) musí mít stejnou výšku.
-    private let vehicleWidgetHeight: CGFloat = 220
+    private let vehicleWidgetHeight: CGFloat = 176
     private let smallWidgetHeight: CGFloat = 176
 
     private func summary(for category: Category) -> CategorySummary {
@@ -468,7 +468,7 @@ struct GreetingCard: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Color.brandTextPrimary)
                     .lineLimit(1)
-                Text(doc.dueDate.formatted(date: .numeric, time: .omitted))
+                Text(doc.validityShort)
                     .font(.system(size: 12))
                     .foregroundStyle(Color.brandTextSecondary)
                     .lineLimit(1)
@@ -503,7 +503,7 @@ struct VehicleWidget: View {
             Image("IllustrationCar")
                 .resizable()
                 .scaledToFit()
-                .frame(height: 144)
+                .frame(height: 88)
                 .frame(maxWidth: .infinity)
                 .accessibilityHidden(true)
 

@@ -64,6 +64,14 @@ extension TrackedItem {
         return "za \(days) dní"
     }
 
+    /// Krátká platnost dokladu jako „MM/RR" (např. „10/32") — doklady mají obvykle jen měsíc a rok.
+    var validityShort: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "cs_CZ")
+        formatter.dateFormat = "MM/yy"
+        return formatter.string(from: dueDate)
+    }
+
     /// Sloupcový formát pro karty: do 30 dní počet dní, jinak přímo datum.
     var compactDeadline: String {
         let days = Calendar.current.dateComponents([.day], from: Date(), to: dueDate).day ?? 0
