@@ -13,7 +13,7 @@ import SwiftData
 
 struct WrapScroller<Page: View>: View {
     let realCount: Int
-    let contentHeight: CGFloat
+    let height: CGFloat
     let page: (Int) -> Page
 
     @State private var scrollPos: Int?
@@ -21,11 +21,11 @@ struct WrapScroller<Page: View>: View {
 
     init(
         realCount: Int,
-        contentHeight: CGFloat,
+        height: CGFloat,
         @ViewBuilder page: @escaping (Int) -> Page
     ) {
         self.realCount = realCount
-        self.contentHeight = contentHeight
+        self.height = height
         self.page = page
     }
 
@@ -50,14 +50,17 @@ struct WrapScroller<Page: View>: View {
             }
             .scrollTargetBehavior(.paging)
             .scrollPosition(id: $scrollPos)
-            .frame(height: contentHeight)
+            .frame(maxHeight: .infinity)
 
-            if total > 1 {
-                dots
-                    .padding(.top, 12)
+            // Tečky mají vždy rezervované místo, ať mají prázdné i plné widgety stejnou výšku.
+            Group {
+                if total > 1 { dots } else { Color.clear }
             }
+            .frame(height: 20)
+            .padding(.top, 8)
         }
         .padding(16)
+        .frame(height: height)
         .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)

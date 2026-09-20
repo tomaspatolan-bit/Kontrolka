@@ -28,6 +28,10 @@ struct DomuView: View {
     @State private var addCategory: Category?
     private static var hasRevealedOnce = false
 
+    // Pevné výšky widgetů — prázdné i plné (s tečkami) musí mít stejnou výšku.
+    private let vehicleWidgetHeight: CGFloat = 220
+    private let smallWidgetHeight: CGFloat = 176
+
     private func summary(for category: Category) -> CategorySummary {
         let inCategory = items.filter { $0.category == category }
         return CategorySummary(
@@ -49,7 +53,7 @@ struct DomuView: View {
 
     // Hlavní widget vozidel: stránkování přes věci + „přidat" stránka, vše v jednom rámečku.
     private var vehicleScroller: some View {
-        WrapScroller(realCount: vehicleThings.count, contentHeight: 150) { slot in
+        WrapScroller(realCount: vehicleThings.count, height: vehicleWidgetHeight) { slot in
             if slot < vehicleThings.count {
                 NavigationLink(value: vehicleThings[slot]) {
                     VehicleThingContent(thing: vehicleThings[slot])
@@ -74,6 +78,7 @@ struct DomuView: View {
                 SmallCategoryWidget(summary: summary(for: category))
             }
             .buttonStyle(PressableCardStyle())
+            .frame(height: smallWidgetHeight)
         }
     }
 
@@ -87,13 +92,14 @@ struct DomuView: View {
                 SmallCategoryWidget(summary: summary(for: .document))
             }
             .buttonStyle(PressableCardStyle())
+            .frame(height: smallWidgetHeight)
         }
     }
 
     // Malý scroller přes věci kategorie (mazlíček, domácnost).
     private func smallThingScroller(_ category: Category, addTitle: String) -> some View {
         let categoryThings = allThings.filter { $0.category == category }
-        return WrapScroller(realCount: categoryThings.count, contentHeight: 120) { slot in
+        return WrapScroller(realCount: categoryThings.count, height: smallWidgetHeight) { slot in
             if slot < categoryThings.count {
                 NavigationLink(value: categoryThings[slot]) {
                     SmallThingContent(thing: categoryThings[slot])
@@ -111,7 +117,7 @@ struct DomuView: View {
     // Malý scroller přes ploché položky kategorie (doklad, ostatní).
     private func smallItemScroller(_ category: Category, addTitle: String) -> some View {
         let categoryItems = items.filter { $0.category == category }
-        return WrapScroller(realCount: categoryItems.count, contentHeight: 120) { slot in
+        return WrapScroller(realCount: categoryItems.count, height: smallWidgetHeight) { slot in
             if slot < categoryItems.count {
                 NavigationLink(value: categoryItems[slot]) {
                     SmallItemContent(item: categoryItems[slot])
@@ -167,6 +173,7 @@ struct DomuView: View {
                                             VehicleWidget(summary: summary(for: .vehicle))
                                         }
                                         .buttonStyle(PressableCardStyle())
+                                        .frame(height: vehicleWidgetHeight)
                                     } else {
                                         vehicleScroller
                                     }
@@ -184,6 +191,7 @@ struct DomuView: View {
                                     categoryLink(.other) {
                                         SmallCategoryWidget(summary: summary(for: .other))
                                     }
+                                    .frame(height: smallWidgetHeight)
                                 }
                                 .appearReveal(revealed, delay: 0.24)
                             }
@@ -490,6 +498,7 @@ struct VehicleWidget: View {
             }
         }
         .padding(16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(Color.surfaceCardBase)
@@ -535,7 +544,7 @@ struct SmallCategoryWidget: View {
                 WidgetEmptyStatus()
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
