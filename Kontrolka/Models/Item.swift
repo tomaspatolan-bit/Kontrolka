@@ -75,6 +75,9 @@ final class TrackedItem {
     // Rodičovská „věc" u asset kategorií (Vozidlo/Domácnost/Mazlíček); jinak nil.
     var thing: TrackedThing?
 
+    // Vlastník u osobních dokladů (kategorie Doklad); jinak nil.
+    var person: Person?
+
     init(
         id: UUID = UUID(),
         title: String,
@@ -85,6 +88,7 @@ final class TrackedItem {
         photoData: Data? = nil,
         customReminderDays: [Int]? = nil,
         thing: TrackedThing? = nil,
+        person: Person? = nil,
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -97,6 +101,7 @@ final class TrackedItem {
         self.photoData = photoData
         self.customReminderDays = customReminderDays
         self.thing = thing
+        self.person = person
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }

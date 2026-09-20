@@ -156,8 +156,9 @@ struct ProfileView: View {
 
 // Karta shrnutí profilu
 struct ProfileSummaryCard: View {
-    @AppStorage(ProfileStorage.nameKey) private var name = ""
-    @AppStorage(ProfileStorage.birthDateKey) private var birthDateISO = ""
+    @Query(filter: #Predicate<Person> { $0.isPrimary }) private var primaryPersons: [Person]
+    private var name: String { primaryPersons.first?.name ?? "" }
+    private var birthDateISO: String { primaryPersons.first?.birthDateISO ?? "" }
 
     private var subtitle: String {
         guard let date = Profile.birthDate(fromISO: birthDateISO) else {

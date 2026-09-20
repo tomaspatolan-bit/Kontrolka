@@ -7,12 +7,13 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct ProfileEditView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
 
-    @AppStorage(ProfileStorage.nameKey) private var storedName = ""
-    @AppStorage(ProfileStorage.birthDateKey) private var storedBirthDateISO = ""
+    @Query(filter: #Predicate<Person> { $0.isPrimary }) private var primaryPersons: [Person]
 
     @State private var name = ""
     @State private var birthDate = Calendar.current.date(byAdding: .year, value: -30, to: Date()) ?? Date()
@@ -54,7 +55,7 @@ struct ProfileEditView: View {
         .navigationTitle("Profil")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
-        .onAppear(perform: loadFromStorage)
+        .onAppear(perform: loadFromPerson)
     }
 
     private var avatar: some View {
@@ -91,16 +92,23 @@ struct ProfileEditView: View {
         }
     }
 
-    private func loadFromStorage() {
-        name = storedName
-        if let date = Profile.birthDate(fromISO: storedBirthDateISO) {
+    private func loadFromPerson() {
+        let person = primaryPersons.first
+        name = person?.name ?? ""
+        if let date = person?.birthDate {
             birthDate = date
         }
     }
 
     private func save() {
-        storedName = name
-        storedBirthDateISO = Profile.iso(from: birthDate)
+        let person = primaryPersons.first ?? {
+            let created = Person(isPrimary: true)
+            modelContext.insert(created)
+            return created
+        }()
+        person.name = name
+        person.birthDateISO = Profile.iso(from: birthDate)
+        try? modelContext.save()
         dismiss()
     }
 }

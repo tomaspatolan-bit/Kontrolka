@@ -13,8 +13,6 @@ import SwiftData
 struct OnboardingView: View {
     @Environment(\.modelContext) private var modelContext
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
-    @AppStorage(ProfileStorage.nameKey) private var profileName = ""
-    @AppStorage(ProfileStorage.birthDateKey) private var profileBirthDate = ""
 
     @State private var step = 0
     @State private var name = ""
@@ -294,10 +292,21 @@ struct OnboardingView: View {
     }
 
     private func finish() {
-        profileName = name
-        profileBirthDate = ISO8601DateFormatter().string(from: birthDate)
+        let person = primaryPerson()
+        person.name = name
+        person.birthDateISO = Profile.iso(from: birthDate)
+        try? modelContext.save()
         Haptics.success()
         withAnimation { hasCompletedOnboarding = true }
+    }
+
+    private func primaryPerson() -> Person {
+        if let existing = (try? modelContext.fetch(FetchDescriptor<Person>()))?.first(where: { $0.isPrimary }) {
+            return existing
+        }
+        let created = Person(isPrimary: true)
+        modelContext.insert(created)
+        return created
     }
 }
 

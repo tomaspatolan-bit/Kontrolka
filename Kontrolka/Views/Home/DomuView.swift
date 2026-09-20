@@ -363,8 +363,9 @@ extension Category: Identifiable {
 struct GreetingCard: View {
     let documentCount: Int
 
-    @AppStorage(ProfileStorage.nameKey) private var name = ""
-    @AppStorage(ProfileStorage.birthDateKey) private var birthDateISO = ""
+    @Query(filter: #Predicate<Person> { $0.isPrimary }) private var primaryPersons: [Person]
+    private var name: String { primaryPersons.first?.name ?? "" }
+    private var birthDateISO: String { primaryPersons.first?.birthDateISO ?? "" }
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {

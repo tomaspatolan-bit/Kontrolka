@@ -16,6 +16,7 @@ struct KontrolkaApp: App {
         let schema = Schema([
             TrackedItem.self,
             TrackedThing.self,
+            Person.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -35,9 +36,41 @@ struct KontrolkaApp: App {
                     OnboardingView()
                 }
             }
-            .task { migrateOrphanItemsIntoThings() }
+            .task {
+                migrateOrphanItemsIntoThings()
+                ensurePrimaryPersonAndDocuments()
+            }
         }
         .modelContainer(sharedModelContainer)
+    }
+
+    /// Zajistí primární osobu (uživatele) a jednorázově jí přiřadí existující doklady.
+    /// Nová osoba se seedne z @AppStorage profilu (kvůli dřívějším uživatelům).
+    @MainActor
+    private func ensurePrimaryPersonAndDocuments() {
+        let context = sharedModelContainer.mainContext
+        let persons = (try? context.fetch(FetchDescriptor<Person>())) ?? []
+
+        let primary: Person
+        if let existing = persons.first(where: { $0.isPrimary }) {
+            primary = existing
+        } else {
+            let name = UserDefaults.standard.string(forKey: ProfileStorage.nameKey) ?? ""
+            let iso = UserDefaults.standard.string(forKey: ProfileStorage.birthDateKey) ?? ""
+            primary = Person(name: name, birthDateISO: iso, isPrimary: true)
+            context.insert(primary)
+        }
+
+        let key = "didAssignDocumentsToPersonV1"
+        if !UserDefaults.standard.bool(forKey: key) {
+            let items = (try? context.fetch(FetchDescriptor<TrackedItem>())) ?? []
+            for item in items where item.category == .document && item.person == nil {
+                item.person = primary
+            }
+            UserDefaults.standard.set(true, forKey: key)
+        }
+
+        try? context.save()
     }
 
     /// Jednorázová migrace: dřívější ploché položky asset kategorií obalí každou
