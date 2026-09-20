@@ -45,6 +45,9 @@ struct AddEditItemView: View {
     @State private var deadlines: [DeadlineDraft]
     @State private var customDeadline: String = ""
 
+    // Pro exkluzivitu typů: co už vlastník (věc / osoba) má.
+    @Query private var allItems: [TrackedItem]
+
     init(modelContext: ModelContext, initialPhotoData: Data? = nil, initialCategory: Category? = nil, itemToEdit: TrackedItem? = nil, existingThing: TrackedThing? = nil, preselectedDeadline: String? = nil, onSaved: (() -> Void)? = nil) {
         self.modelContext = modelContext
         self.itemToEdit = itemToEdit
@@ -108,6 +111,22 @@ struct AddEditItemView: View {
             : "Vyber, co u této věci hlídat. Ke každému nastav datum."
     }
     private var customPlaceholder: String { isDocumentAdd ? "Vlastní doklad" : "Vlastní termín" }
+
+    // Typy, které vlastník (věc / osoba) už má — nejde přidat podruhé.
+    private var existingTitles: Set<String> {
+        if let existingThing {
+            return Set(existingThing.items.map { $0.title })
+        }
+        if isDocumentAdd {
+            return Set(allItems.filter { $0.category == .document }.map { $0.title })
+        }
+        return []
+    }
+
+    // Návrhy, které ještě nejsou u vlastníka přidané.
+    private var availableSuggestions: [String] {
+        category.subcategorySuggestions.filter { !existingTitles.contains($0) }
+    }
 
     var body: some View {
         ZStack {
@@ -339,10 +358,10 @@ struct AddEditItemView: View {
     // Chips termínů (multi-select) pro asset add flow.
     @ViewBuilder
     private var deadlineChips: some View {
-        if !category.subcategorySuggestions.isEmpty {
+        if !availableSuggestions.isEmpty {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(category.subcategorySuggestions, id: \.self) { suggestion in
+                    ForEach(availableSuggestions, id: \.self) { suggestion in
                         let selected = deadlines.contains { $0.name == suggestion }
                         Button {
                             toggleDeadline(suggestion)
@@ -413,7 +432,8 @@ struct AddEditItemView: View {
 
     private func addCustomDeadline() {
         guard let name = customDeadlineTrimmed else { return }
-        if !deadlines.contains(where: { $0.name == name }) {
+        // Exkluzivita: nepřidávej typ, který vlastník už má nebo je už vybraný.
+        if !existingTitles.contains(name), !deadlines.contains(where: { $0.name == name }) {
             deadlines.append(DeadlineDraft(name: name, date: Self.defaultDate))
         }
         customDeadline = ""
@@ -497,8 +517,8 @@ struct AddEditItemView: View {
                 await NotificationManager.shared.scheduleNotifications(for: itemToEdit)
             }
         } else if let existingThing {
-            // Přidání termínů k existující věci
-            for deadline in deadlines {
+            // Přidání termínů k existující věci (exkluzivita: přeskoč už existující typy)
+            for deadline in deadlines where !existingTitles.contains(deadline.name) {
                 let item = TrackedItem(
                     title: deadline.name,
                     category: existingThing.category,
@@ -531,9 +551,9 @@ struct AddEditItemView: View {
                 }
             }
         } else if category == .document {
-            // Osobní doklady (typ + platnost) pod primární osobu
+            // Osobní doklady (typ + platnost) pod primární osobu (exkluzivita typů)
             let person = ensurePrimaryPerson()
-            for deadline in deadlines {
+            for deadline in deadlines where !existingTitles.contains(deadline.name) {
                 let item = TrackedItem(
                     title: deadline.name,
                     category: .document,
