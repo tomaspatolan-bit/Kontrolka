@@ -52,7 +52,7 @@ enum Category: String, Codable, CaseIterable {
         case .warranty:
             return ["Elektronika", "Spotřebič", "Nářadí", "Nábytek"]
         case .document:
-            return ["Občanský průkaz", "Cestovní pas", "Řidičský průkaz"]
+            return ["Občanský průkaz", "Cestovní pas", "Řidičský průkaz", "Zdravotní průkaz", "Zbrojní průkaz", "Očkovací průkaz", "ISIC"]
         case .other:
             return []
         }

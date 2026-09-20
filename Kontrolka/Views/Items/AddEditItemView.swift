@@ -77,11 +77,15 @@ struct AddEditItemView: View {
     private var isAddToThing: Bool {
         itemToEdit == nil && existingThing != nil
     }
-    /// Oba režimy používají multi-termínový builder.
-    private var usesDeadlineBuilder: Bool { isNewThing || isAddToThing }
+    /// Přidání osobních dokladů (typ + platnost) pod primární osobu.
+    private var isDocumentAdd: Bool {
+        itemToEdit == nil && existingThing == nil && category == .document
+    }
+    /// Režimy s multi-výběrem (termíny / doklady).
+    private var usesDeadlineBuilder: Bool { isNewThing || isAddToThing || isDocumentAdd }
 
     private var canSave: Bool {
-        if isAddToThing {
+        if isAddToThing || isDocumentAdd {
             return !deadlines.isEmpty
         } else if isNewThing {
             return !thingName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !deadlines.isEmpty
@@ -89,6 +93,14 @@ struct AddEditItemView: View {
             return !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
     }
+
+    private var builderTitle: String { isDocumentAdd ? "Doklady" : "Termíny" }
+    private var builderHint: String {
+        isDocumentAdd
+            ? "Vyber doklady a nastav jejich platnost."
+            : "Vyber, co u této věci hlídat. Ke každému nastav datum."
+    }
+    private var customPlaceholder: String { isDocumentAdd ? "Vlastní doklad" : "Vlastní termín" }
 
     var body: some View {
         ZStack {
@@ -132,6 +144,7 @@ struct AddEditItemView: View {
     private var headerTitle: String {
         if itemToEdit != nil { return "Upravit položku" }
         if existingThing != nil { return "Nový termín" }
+        if category == .document { return "Nový doklad" }
         return category.usesThings ? "Nová věc" : "Nová položka"
     }
 
@@ -229,6 +242,9 @@ struct AddEditItemView: View {
 
             categoryRow
             rowDivider
+        } else if isDocumentAdd {
+            categoryRow
+            rowDivider
         } else if let existingThing {
             HStack {
                 Text(existingThing.name)
@@ -243,8 +259,8 @@ struct AddEditItemView: View {
             rowDivider
         }
 
-        sectionLabel("Termíny")
-        Text("Vyber, co u této věci hlídat. Ke každému nastav datum.")
+        sectionLabel(builderTitle)
+        Text(builderHint)
             .font(.system(size: 13))
             .foregroundStyle(Color.brandTextSecondary)
             .padding(.bottom, 10)
@@ -253,9 +269,9 @@ struct AddEditItemView: View {
 
         // Vlastní termín
         HStack(spacing: 10) {
-            TextField("Vlastní termín", text: $customDeadline)
+            TextField(customPlaceholder, text: $customDeadline)
                 .font(.system(size: 16))
-                .accessibilityLabel("Vlastní termín")
+                .accessibilityLabel(customPlaceholder)
             Button {
                 addCustomDeadline()
             } label: {
@@ -450,6 +466,15 @@ struct AddEditItemView: View {
         }
     }
 
+    private func ensurePrimaryPerson() -> Person {
+        if let existing = (try? modelContext.fetch(FetchDescriptor<Person>()))?.first(where: { $0.isPrimary }) {
+            return existing
+        }
+        let created = Person(isPrimary: true)
+        modelContext.insert(created)
+        return created
+    }
+
     private func saveItem() {
         if let itemToEdit {
             // Úprava existující položky
@@ -492,6 +517,21 @@ struct AddEditItemView: View {
                     category: category,
                     dueDate: deadline.date,
                     thing: thing
+                )
+                modelContext.insert(item)
+                Task {
+                    await NotificationManager.shared.scheduleNotifications(for: item)
+                }
+            }
+        } else if category == .document {
+            // Osobní doklady (typ + platnost) pod primární osobu
+            let person = ensurePrimaryPerson()
+            for deadline in deadlines {
+                let item = TrackedItem(
+                    title: deadline.name,
+                    category: .document,
+                    dueDate: deadline.date,
+                    person: person
                 )
                 modelContext.insert(item)
                 Task {

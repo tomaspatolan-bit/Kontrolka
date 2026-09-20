@@ -22,6 +22,7 @@ struct DomuView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \TrackedItem.dueDate, order: .forward) private var items: [TrackedItem]
     @Query(sort: \TrackedThing.createdAt, order: .forward) private var allThings: [TrackedThing]
+    @Query(filter: #Predicate<Person> { $0.isPrimary }) private var primaryPersons: [Person]
     @Namespace private var categoryNS
     @State private var revealed = false
     @State private var addCategory: Category?
@@ -142,8 +143,17 @@ struct DomuView: View {
                             .accessibilityLabel("Kontrolka")
                             .appearReveal(revealed, delay: 0)
 
-                        GreetingCard(documentCount: documentCount)
-                            .appearReveal(revealed, delay: 0.06)
+                        Group {
+                            if let person = primaryPersons.first {
+                                NavigationLink(value: person) {
+                                    GreetingCard(documentCount: documentCount)
+                                }
+                                .buttonStyle(PressableCardStyle())
+                            } else {
+                                GreetingCard(documentCount: documentCount)
+                            }
+                        }
+                        .appearReveal(revealed, delay: 0.06)
 
                         // Widgety nebo prázdný stav
                         if items.isEmpty {
@@ -193,6 +203,9 @@ struct DomuView: View {
             }
             .navigationDestination(for: TrackedItem.self) { item in
                 ItemDetailView(item: item, modelContext: modelContext)
+            }
+            .navigationDestination(for: Person.self) { person in
+                PersonDetailView(person: person, modelContext: modelContext)
             }
             .sheet(item: $addCategory) { category in
                 AddEditItemView(modelContext: modelContext, initialCategory: category)
