@@ -16,6 +16,8 @@ struct ThingDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showingAdd = false
     @State private var showingDeleteAlert = false
+    @State private var showingRename = false
+    @State private var renameText = ""
 
     private var items: [TrackedItem] {
         thing.items.sorted { $0.dueDate < $1.dueDate }
@@ -59,6 +61,18 @@ struct ThingDetailView: View {
         .navigationTitle(thing.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    renameText = thing.name
+                    showingRename = true
+                } label: {
+                    Image(systemName: "pencil")
+                        .foregroundStyle(Color.brandAccent)
+                }
+                .accessibilityLabel("Přejmenovat věc")
+            }
+        }
         .sheet(isPresented: $showingAdd) {
             AddEditItemView(modelContext: modelContext, existingThing: thing)
         }
@@ -67,6 +81,11 @@ struct ThingDetailView: View {
             Button("Smazat", role: .destructive) { deleteThing() }
         } message: {
             Text("Smaže se věc i všechny její termíny. Akci nelze vrátit zpět.")
+        }
+        .alert("Přejmenovat věc", isPresented: $showingRename) {
+            TextField("Název", text: $renameText)
+            Button("Uložit") { rename() }
+            Button("Zrušit", role: .cancel) {}
         }
     }
 
@@ -168,6 +187,13 @@ struct ThingDetailView: View {
             )
         }
         .buttonStyle(PressableCardStyle())
+    }
+
+    private func rename() {
+        let trimmed = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        thing.name = trimmed
+        try? modelContext.save()
     }
 
     private func deleteThing() {
