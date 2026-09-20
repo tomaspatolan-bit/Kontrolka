@@ -46,68 +46,57 @@ struct DomuView: View {
         allThings.filter { $0.category == .vehicle }
     }
 
-    // Hlavní widget vozidel: wrap scroll přes věci + „přidat" dlaždice na konci.
+    // Hlavní widget vozidel: stránkování přes věci + „přidat" stránka, vše v jednom rámečku.
     private var vehicleScroller: some View {
-        WrapScroller(realCount: vehicleThings.count, height: 184) { idx in
-            NavigationLink(value: vehicleThings[idx]) {
-                VehicleThingCard(thing: vehicleThings[idx])
+        WrapScroller(realCount: vehicleThings.count, contentHeight: 150) { slot in
+            if slot < vehicleThings.count {
+                NavigationLink(value: vehicleThings[slot]) {
+                    VehicleThingContent(thing: vehicleThings[slot])
+                }
+                .buttonStyle(.plain)
+            } else {
+                Button { addCategory = .vehicle } label: {
+                    AddContent(title: "Přidat vozidlo")
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
-        } addPage: {
-            addCard(.vehicle, title: "Přidat vozidlo")
         }
     }
 
     // Malý scroller přes věci kategorie (mazlíček, domácnost).
     private func smallThingScroller(_ category: Category, addTitle: String) -> some View {
         let categoryThings = allThings.filter { $0.category == category }
-        return WrapScroller(realCount: categoryThings.count, height: 150) { idx in
-            NavigationLink(value: categoryThings[idx]) {
-                SmallThingCard(thing: categoryThings[idx])
+        return WrapScroller(realCount: categoryThings.count, contentHeight: 120) { slot in
+            if slot < categoryThings.count {
+                NavigationLink(value: categoryThings[slot]) {
+                    SmallThingContent(thing: categoryThings[slot])
+                }
+                .buttonStyle(.plain)
+            } else {
+                Button { addCategory = category } label: {
+                    AddContent(title: addTitle)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
-        } addPage: {
-            addCard(category, title: addTitle)
         }
     }
 
     // Malý scroller přes ploché položky kategorie (doklad, ostatní).
     private func smallItemScroller(_ category: Category, addTitle: String) -> some View {
         let categoryItems = items.filter { $0.category == category }
-        return WrapScroller(realCount: categoryItems.count, height: 150) { idx in
-            NavigationLink(value: categoryItems[idx]) {
-                SmallItemCard(item: categoryItems[idx])
+        return WrapScroller(realCount: categoryItems.count, contentHeight: 120) { slot in
+            if slot < categoryItems.count {
+                NavigationLink(value: categoryItems[slot]) {
+                    SmallItemContent(item: categoryItems[slot])
+                }
+                .buttonStyle(.plain)
+            } else {
+                Button { addCategory = category } label: {
+                    AddContent(title: addTitle)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
-        } addPage: {
-            addCard(category, title: addTitle)
         }
-    }
-
-    // „Přidat" dlaždice (poslední strana scrolleru) — otevře přidání dané kategorie.
-    private func addCard(_ category: Category, title: String) -> some View {
-        Button {
-            addCategory = category
-        } label: {
-            VStack(spacing: 10) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 34))
-                    .foregroundStyle(Color.brandAccent)
-                Text(title)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color.brandAccent)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.surfaceCardBase)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(Color.brandAccent.opacity(0.4), style: StrokeStyle(lineWidth: 1.5, dash: [6]))
-            )
-        }
-        .buttonStyle(.plain)
     }
 
     var body: some View {

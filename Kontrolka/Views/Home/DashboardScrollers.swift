@@ -2,36 +2,34 @@
 //  DashboardScrollers.swift
 //  Kontrolka
 //
-//  Vodorovné „nekonečné" wrap scrollery pro widgety na Domů: N reálných karet
-//  (věci/položky) + poslední „přidat" dlaždice, pod tím tečky (poslední = „+").
-//  Reálná karta = index % (počet+1); přidávat jde i intuitivně scrollem doprava.
+//  Widget = JEDEN rámeček (rounded card). Uvnitř něj se vodorovně stránkuje
+//  obsah (jedna „stránka" vyplní celý widget, žádné prosakování sousedů),
+//  pod obsahem tečky (poslední = „+"). N reálných stránek + „přidat" stránka;
+//  „nekonečný" wrap přes velký virtuální rozsah (stránka = index % (počet+1)).
 //
 
 import SwiftUI
 import SwiftData
 
-struct WrapScroller<RealPage: View, AddPage: View>: View {
+struct WrapScroller<Page: View>: View {
     let realCount: Int
-    let height: CGFloat
-    let realPage: (Int) -> RealPage
-    let addPage: () -> AddPage
+    let contentHeight: CGFloat
+    let page: (Int) -> Page
 
     @State private var scrollPos: Int?
     private let virtual = 10_000
 
     init(
         realCount: Int,
-        height: CGFloat,
-        @ViewBuilder realPage: @escaping (Int) -> RealPage,
-        @ViewBuilder addPage: @escaping () -> AddPage
+        contentHeight: CGFloat,
+        @ViewBuilder page: @escaping (Int) -> Page
     ) {
         self.realCount = realCount
-        self.height = height
-        self.realPage = realPage
-        self.addPage = addPage
+        self.contentHeight = contentHeight
+        self.page = page
     }
 
-    // Reálné karty + 1 „přidat" dlaždice.
+    // Reálné stránky + 1 „přidat".
     private var total: Int { realCount + 1 }
 
     private var activeIndex: Int {
@@ -39,59 +37,100 @@ struct WrapScroller<RealPage: View, AddPage: View>: View {
     }
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: 12) {
+                LazyHStack(spacing: 0) {
                     ForEach(0..<virtual, id: \.self) { i in
-                        let slot = i % total
-                        Group {
-                            if slot < realCount {
-                                realPage(slot)
-                            } else {
-                                addPage()
-                            }
-                        }
-                        .containerRelativeFrame(.horizontal)
-                        .frame(height: height)
-                        .id(i)
+                        page(i % total)
+                            .containerRelativeFrame(.horizontal)
+                            .id(i)
                     }
                 }
                 .scrollTargetLayout()
             }
             .scrollTargetBehavior(.paging)
             .scrollPosition(id: $scrollPos)
-            .frame(height: height)
+            .frame(height: contentHeight)
 
             if total > 1 {
-                HStack(spacing: 6) {
-                    ForEach(0..<total, id: \.self) { i in
-                        if i == realCount {
-                            // Poslední tečka = „přidat".
-                            Image(systemName: "plus")
-                                .font(.system(size: 8, weight: .black))
-                                .foregroundStyle(i == activeIndex ? Color.brandAccent : Color.brandTextSecondary.opacity(0.45))
-                        } else {
-                            Circle()
-                                .fill(i == activeIndex ? Color.brandAccent : Color.brandTextSecondary.opacity(0.3))
-                                .frame(width: 7, height: 7)
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .animation(.snappy, value: activeIndex)
+                dots
+                    .padding(.top, 12)
             }
         }
+        .padding(16)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.surfaceCardBase)
+        )
+        .shadow(color: .black.opacity(0.06), radius: 15, y: 6)
         .onAppear {
             guard scrollPos == nil else { return }
             let mid = virtual / 2
-            scrollPos = mid - (mid % total) // začni na první reálné kartě
+            scrollPos = mid - (mid % total) // začni na první reálné stránce
+        }
+    }
+
+    private var dots: some View {
+        HStack(spacing: 6) {
+            ForEach(0..<total, id: \.self) { i in
+                if i == realCount {
+                    Image(systemName: "plus")
+                        .font(.system(size: 8, weight: .black))
+                        .foregroundStyle(i == activeIndex ? Color.brandAccent : Color.brandTextSecondary.opacity(0.45))
+                } else {
+                    Circle()
+                        .fill(i == activeIndex ? Color.brandAccent : Color.brandTextSecondary.opacity(0.3))
+                        .frame(width: 7, height: 7)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .animation(.snappy, value: activeIndex)
+    }
+}
+
+// MARK: - Ilustrace kategorie
+
+struct CategoryArt: View {
+    let category: Category
+
+    var body: some View {
+        if let name = category.illustrationName {
+            Image(name)
+                .resizable()
+                .scaledToFit()
+                .accessibilityHidden(true)
+        } else {
+            Image(systemName: category.iconName)
+                .font(.system(size: 36))
+                .foregroundStyle(Color.brandAccent)
+                .accessibilityHidden(true)
         }
     }
 }
 
-// MARK: - Velká karta vozidla (ilustrace vlevo, sloupec termínů vpravo)
+// MARK: - „Přidat" stránka (obsah, bez pozadí — pozadí drží widget)
 
-struct VehicleThingCard: View {
+struct AddContent: View {
+    let title: String
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "plus.circle.fill")
+                .font(.system(size: 34))
+                .foregroundStyle(Color.brandAccent)
+            Text(title)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Color.brandAccent)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - Obsah velké karty vozidla (ilustrace vlevo, sloupec termínů vpravo)
+
+struct VehicleThingContent: View {
     let thing: TrackedThing
 
     private var items: [TrackedItem] {
@@ -103,7 +142,7 @@ struct VehicleThingCard: View {
             Image("IllustrationCar")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 116)
+                .frame(width: 110)
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 10) {
@@ -147,39 +186,13 @@ struct VehicleThingCard: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(16)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.surfaceCardBase)
-        )
-        .shadow(color: .black.opacity(0.06), radius: 15, y: 6)
     }
 }
 
-// MARK: - Ilustrace kategorie
+// MARK: - Obsah malé karty věci (mazlíček, domácnost): jméno + nejbližší termín
 
-struct CategoryArt: View {
-    let category: Category
-
-    var body: some View {
-        if let name = category.illustrationName {
-            Image(name)
-                .resizable()
-                .scaledToFit()
-                .accessibilityHidden(true)
-        } else {
-            Image(systemName: category.iconName)
-                .font(.system(size: 36))
-                .foregroundStyle(Color.brandAccent)
-                .accessibilityHidden(true)
-        }
-    }
-}
-
-// MARK: - Malá karta věci (mazlíček, domácnost): jméno + nejbližší termín
-
-struct SmallThingCard: View {
+struct SmallThingContent: View {
     let thing: TrackedThing
 
     var body: some View {
@@ -207,19 +220,16 @@ struct SmallThingCard: View {
                     .foregroundStyle(Color.brandTextSecondary)
                     .lineLimit(1)
             }
+
+            Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.surfaceCardBase)
-        )
     }
 }
 
-// MARK: - Malá karta ploché položky (doklad, ostatní): ilustrace + název + termín
+// MARK: - Obsah malé karty ploché položky (doklad, ostatní)
 
-struct SmallItemCard: View {
+struct SmallItemContent: View {
     let item: TrackedItem
 
     var body: some View {
@@ -240,12 +250,9 @@ struct SmallItemCard: View {
                     .foregroundStyle(item.urgency.textColor)
                     .lineLimit(1)
             }
+
+            Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.surfaceCardBase)
-        )
     }
 }
