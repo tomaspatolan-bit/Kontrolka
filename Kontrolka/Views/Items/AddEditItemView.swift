@@ -28,6 +28,8 @@ struct AddEditItemView: View {
     /// Volitelný callback po úspěšném uložení. Když je nastaven, řízení převezme
     /// volající (např. onboarding dokončí flow) místo výchozího `dismiss()`.
     let onSaved: (() -> Void)?
+    /// Když je zadané, přidáváme termíny k této existující věci (ne novou věc).
+    let existingThing: TrackedThing?
 
     @State private var title: String
     @State private var category: Category
@@ -43,13 +45,14 @@ struct AddEditItemView: View {
     @State private var deadlines: [DeadlineDraft] = []
     @State private var customDeadline: String = ""
 
-    init(modelContext: ModelContext, initialPhotoData: Data? = nil, initialCategory: Category? = nil, itemToEdit: TrackedItem? = nil, onSaved: (() -> Void)? = nil) {
+    init(modelContext: ModelContext, initialPhotoData: Data? = nil, initialCategory: Category? = nil, itemToEdit: TrackedItem? = nil, existingThing: TrackedThing? = nil, onSaved: (() -> Void)? = nil) {
         self.modelContext = modelContext
         self.itemToEdit = itemToEdit
+        self.existingThing = existingThing
         self.onSaved = onSaved
 
         _title = State(initialValue: itemToEdit?.title ?? "")
-        _category = State(initialValue: itemToEdit?.category ?? initialCategory ?? .vehicle)
+        _category = State(initialValue: itemToEdit?.category ?? existingThing?.category ?? initialCategory ?? .vehicle)
         _subcategory = State(initialValue: itemToEdit?.subcategory ?? "")
         _dueDate = State(initialValue: itemToEdit?.dueDate ?? Self.defaultDate)
         _note = State(initialValue: itemToEdit?.note ?? "")
@@ -66,13 +69,21 @@ struct AddEditItemView: View {
         Calendar.current.date(byAdding: .month, value: 1, to: Date()) ?? Date()
     }
 
-    /// Přidání do asset kategorie = režim „věc + víc termínů".
-    private var isAssetAdd: Bool {
-        itemToEdit == nil && category.usesThings
+    /// Nová věc (asset kategorie, bez existující věci) = režim „věc + víc termínů".
+    private var isNewThing: Bool {
+        itemToEdit == nil && existingThing == nil && category.usesThings
     }
+    /// Přidání termínů k existující věci.
+    private var isAddToThing: Bool {
+        itemToEdit == nil && existingThing != nil
+    }
+    /// Oba režimy používají multi-termínový builder.
+    private var usesDeadlineBuilder: Bool { isNewThing || isAddToThing }
 
     private var canSave: Bool {
-        if isAssetAdd {
+        if isAddToThing {
+            return !deadlines.isEmpty
+        } else if isNewThing {
             return !thingName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !deadlines.isEmpty
         } else {
             return !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -90,7 +101,7 @@ struct AddEditItemView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
-                        if isAssetAdd {
+                        if usesDeadlineBuilder {
                             assetForm
                         } else {
                             flatForm
@@ -120,6 +131,7 @@ struct AddEditItemView: View {
 
     private var headerTitle: String {
         if itemToEdit != nil { return "Upravit položku" }
+        if existingThing != nil { return "Nový termín" }
         return category.usesThings ? "Nová věc" : "Nová položka"
     }
 
@@ -208,14 +220,28 @@ struct AddEditItemView: View {
 
     @ViewBuilder
     private var assetForm: some View {
-        TextField("Název (např. Škoda Octavia)", text: $thingName)
-            .font(.system(size: 17))
-            .padding(.vertical, 16)
-            .accessibilityLabel("Název věci")
-        rowDivider
+        if isNewThing {
+            TextField("Název (např. Škoda Octavia)", text: $thingName)
+                .font(.system(size: 17))
+                .padding(.vertical, 16)
+                .accessibilityLabel("Název věci")
+            rowDivider
 
-        categoryRow
-        rowDivider
+            categoryRow
+            rowDivider
+        } else if let existingThing {
+            HStack {
+                Text(existingThing.name)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(Color.brandTextPrimary)
+                Spacer()
+                Text(existingThing.category.widgetTitle)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.brandTextSecondary)
+            }
+            .padding(.vertical, 16)
+            rowDivider
+        }
 
         sectionLabel("Termíny")
         Text("Vyber, co u této věci hlídat. Ke každému nastav datum.")
@@ -437,6 +463,20 @@ struct AddEditItemView: View {
 
             Task {
                 await NotificationManager.shared.scheduleNotifications(for: itemToEdit)
+            }
+        } else if let existingThing {
+            // Přidání termínů k existující věci
+            for deadline in deadlines {
+                let item = TrackedItem(
+                    title: deadline.name,
+                    category: existingThing.category,
+                    dueDate: deadline.date,
+                    thing: existingThing
+                )
+                modelContext.insert(item)
+                Task {
+                    await NotificationManager.shared.scheduleNotifications(for: item)
+                }
             }
         } else if category.usesThings {
             // Nová věc + sada termínů (každý chip = vlastní položka pod věcí)

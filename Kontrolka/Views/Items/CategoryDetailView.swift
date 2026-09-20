@@ -15,10 +15,15 @@ struct CategoryDetailView: View {
 
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \TrackedItem.dueDate, order: .forward) private var allItems: [TrackedItem]
+    @Query(sort: \TrackedThing.createdAt, order: .forward) private var allThings: [TrackedThing]
     @State private var showingAdd = false
 
     private var items: [TrackedItem] {
         allItems.filter { $0.category == category }
+    }
+
+    private var things: [TrackedThing] {
+        allThings.filter { $0.category == category }
     }
 
     var body: some View {
@@ -30,24 +35,39 @@ struct CategoryDetailView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     heroCard
 
-                    Text("TERMÍNY")
+                    Text(category.usesThings ? "VĚCI" : "TERMÍNY")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(Color.brandTextPrimary)
                         .padding(.leading, 4)
 
-                    if items.isEmpty {
-                        emptyState
-                    } else {
-                        VStack(spacing: 12) {
-                            ForEach(items) { item in
-                                NavigationLink(value: item) {
-                                    TrackedItemCardView(item: item)
+                    if category.usesThings {
+                        if things.isEmpty {
+                            emptyState
+                        } else {
+                            VStack(spacing: 12) {
+                                ForEach(things) { thing in
+                                    NavigationLink(value: thing) {
+                                        ThingRowCard(thing: thing)
+                                    }
+                                    .buttonStyle(PressableCardStyle())
                                 }
-                                .buttonStyle(PressableCardStyle())
-                                .transition(.move(edge: .top).combined(with: .opacity))
                             }
                         }
-                        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: items.count)
+                    } else {
+                        if items.isEmpty {
+                            emptyState
+                        } else {
+                            VStack(spacing: 12) {
+                                ForEach(items) { item in
+                                    NavigationLink(value: item) {
+                                        TrackedItemCardView(item: item)
+                                    }
+                                    .buttonStyle(PressableCardStyle())
+                                    .transition(.move(edge: .top).combined(with: .opacity))
+                                }
+                            }
+                            .animation(.spring(response: 0.4, dampingFraction: 0.85), value: items.count)
+                        }
                     }
 
                     addButton
@@ -140,7 +160,7 @@ struct CategoryDetailView: View {
         Button {
             showingAdd = true
         } label: {
-            Text("Přidat termín")
+            Text(category.usesThings ? "Přidat věc" : "Přidat termín")
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(Color.brandAccent)
                 .frame(maxWidth: .infinity)

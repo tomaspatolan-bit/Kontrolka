@@ -112,6 +112,9 @@ struct DomuView: View {
                 CategoryDetailView(category: category)
                     .zoomTransition(id: category, in: categoryNS)
             }
+            .navigationDestination(for: TrackedThing.self) { thing in
+                ThingDetailView(thing: thing, modelContext: modelContext)
+            }
             .sheet(item: $addCategory) { category in
                 AddEditItemView(modelContext: modelContext, initialCategory: category)
             }
@@ -475,7 +478,7 @@ struct VehicleThingsWidget: View {
 
     @ViewBuilder
     private func card(for thing: TrackedThing) -> some View {
-        NavigationLink(value: Category.vehicle) {
+        NavigationLink(value: thing) {
             VStack(spacing: 8) {
                 Image("IllustrationCar")
                     .resizable()
