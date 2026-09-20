@@ -41,11 +41,6 @@ struct DomuView: View {
         )
     }
 
-    /// Počet dokladů (pro dlaždici na uvítací kartě)
-    private var documentCount: Int {
-        items.filter { $0.category == .document }.count
-    }
-
     /// Sledovaná vozidla (věci) — pro hlavní scrollovací widget.
     private var vehicleThings: [TrackedThing] {
         allThings.filter { $0.category == .vehicle }
@@ -82,16 +77,15 @@ struct DomuView: View {
         }
     }
 
-    // Doklady: prázdné → default karta, jinak scroller přes položky.
+    // Ostatní: celá šířka; prázdné → default karta, jinak scroller přes položky.
     @ViewBuilder
-    private var documentWidget: some View {
-        if items.contains(where: { $0.category == .document }) {
-            smallItemScroller(.document, addTitle: "Přidat doklad")
+    private var otherWidget: some View {
+        if items.contains(where: { $0.category == .other }) {
+            smallItemScroller(.other, addTitle: "Přidat další")
         } else {
-            Button { addCategory = .document } label: {
-                SmallCategoryWidget(summary: summary(for: .document))
+            categoryLink(.other) {
+                SmallCategoryWidget(summary: summary(for: .other))
             }
-            .buttonStyle(PressableCardStyle())
             .frame(height: smallWidgetHeight)
         }
     }
@@ -152,11 +146,11 @@ struct DomuView: View {
                         Group {
                             if let person = primaryPersons.first {
                                 NavigationLink(value: person) {
-                                    GreetingCard(documentCount: documentCount)
+                                    GreetingCard()
                                 }
                                 .buttonStyle(PressableCardStyle())
                             } else {
-                                GreetingCard(documentCount: documentCount)
+                                GreetingCard()
                             }
                         }
                         .appearReveal(revealed, delay: 0.06)
@@ -186,14 +180,8 @@ struct DomuView: View {
                                 }
                                 .appearReveal(revealed, delay: 0.18)
 
-                                HStack(spacing: 13) {
-                                    documentWidget
-                                    categoryLink(.other) {
-                                        SmallCategoryWidget(summary: summary(for: .other))
-                                    }
-                                    .frame(height: smallWidgetHeight)
-                                }
-                                .appearReveal(revealed, delay: 0.24)
+                                otherWidget
+                                    .appearReveal(revealed, delay: 0.24)
                             }
                         }
                     }
@@ -268,10 +256,7 @@ struct DomuView: View {
                 inviteSmall(.homeMaintenance)
             }
 
-            HStack(spacing: 13) {
-                inviteSmall(.document)
-                inviteSmall(.other)
-            }
+            inviteSmall(.other)
         }
     }
 
@@ -382,79 +367,95 @@ extension Category: Identifiable {
 // MARK: - GreetingCard
 
 struct GreetingCard: View {
-    let documentCount: Int
-
     @Query(filter: #Predicate<Person> { $0.isPrimary }) private var primaryPersons: [Person]
     private var name: String { primaryPersons.first?.name ?? "" }
-    private var birthDateISO: String { primaryPersons.first?.birthDateISO ?? "" }
+
+    private var documents: [TrackedItem] {
+        (primaryPersons.first?.documents ?? []).sorted { $0.dueDate < $1.dueDate }
+    }
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 10) {
-                    ZStack {
-                        Circle().fill(Color.brandAccent)
-                        if name.isEmpty {
-                            Image(systemName: "person.fill")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(Color.white)
-                        } else {
-                            Text(Profile.initial(from: name))
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(Color.white)
-                        }
-                    }
-                    .frame(width: 36, height: 36)
-
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(name.isEmpty ? "Vítejte zpět" : name)
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundStyle(Color.brandTextPrimary)
-                            .lineLimit(1)
-                        Text("Osobní karta")
-                            .font(.system(size: 12))
-                            .foregroundStyle(Color.brandTextSecondary)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle().fill(Color.brandAccent)
+                    if name.isEmpty {
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(Color.white)
+                    } else {
+                        Text(Profile.initial(from: name))
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(Color.white)
                     }
                 }
+                .frame(width: 36, height: 36)
 
-                HStack(spacing: 8) {
-                    StatTile(label: "Věk", value: Profile.ageText(fromISO: birthDateISO) ?? "—")
-                    StatTile(label: "Doklady", value: "\(documentCount)")
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(name.isEmpty ? "Vítejte zpět" : name)
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(Color.brandTextPrimary)
+                        .lineLimit(1)
+                    Text("Osobní karta")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.brandTextSecondary)
                 }
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.brandTextSecondary)
             }
 
-            Spacer(minLength: 0)
+            documentsStrip
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 12)
+        .padding(.vertical, 14)
         .background(
-            RoundedRectangle(cornerRadius: 32, style: .continuous)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(Color.surfaceCardBase)
         )
         .shadow(color: .black.opacity(0.07), radius: 8, y: 8)
     }
-}
 
-private struct StatTile: View {
-    let label: String
-    let value: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 1) {
-            Text(label)
-                .font(.system(size: 11))
+    // Kompaktní řádek dokladů přímo v osobní kartě (celý card je klikací → detail osoby).
+    @ViewBuilder
+    private var documentsStrip: some View {
+        if documents.isEmpty {
+            Text("Zatím žádné doklady — klepni pro přidání")
+                .font(.system(size: 13))
                 .foregroundStyle(Color.brandTextSecondary)
-            Text(value)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Color.brandTextPrimary)
+        } else {
+            HStack(spacing: 8) {
+                ForEach(documents.prefix(2)) { doc in
+                    docChip(doc)
+                }
+                if documents.count > 2 {
+                    Text("+\(documents.count - 2)")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Color.brandTextSecondary)
+                }
+                Spacer(minLength: 0)
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func docChip(_ doc: TrackedItem) -> some View {
+        HStack(spacing: 5) {
+            Circle().fill(doc.urgency.color).frame(width: 6, height: 6)
+            Text(doc.title)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color.brandTextPrimary)
+                .lineLimit(1)
+            Text("· \(doc.compactDeadline)")
+                .font(.system(size: 12))
+                .foregroundStyle(doc.urgency.textColor)
+                .lineLimit(1)
+        }
         .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.white.opacity(0.75))
-        )
+        .padding(.vertical, 6)
+        .background(Capsule().fill(Color.white.opacity(0.7)))
     }
 }
 
