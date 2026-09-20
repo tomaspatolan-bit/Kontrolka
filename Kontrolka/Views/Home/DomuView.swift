@@ -63,6 +63,32 @@ struct DomuView: View {
         }
     }
 
+    // Malý widget asset kategorie: prázdné → default karta (klepni pro přidání), jinak scroller.
+    @ViewBuilder
+    private func assetSmallWidget(_ category: Category, addTitle: String) -> some View {
+        if allThings.contains(where: { $0.category == category }) {
+            smallThingScroller(category, addTitle: addTitle)
+        } else {
+            Button { addCategory = category } label: {
+                SmallCategoryWidget(summary: summary(for: category))
+            }
+            .buttonStyle(PressableCardStyle())
+        }
+    }
+
+    // Doklady: prázdné → default karta, jinak scroller přes položky.
+    @ViewBuilder
+    private var documentWidget: some View {
+        if items.contains(where: { $0.category == .document }) {
+            smallItemScroller(.document, addTitle: "Přidat doklad")
+        } else {
+            Button { addCategory = .document } label: {
+                SmallCategoryWidget(summary: summary(for: .document))
+            }
+            .buttonStyle(PressableCardStyle())
+        }
+    }
+
     // Malý scroller přes věci kategorie (mazlíček, domácnost).
     private func smallThingScroller(_ category: Category, addTitle: String) -> some View {
         let categoryThings = allThings.filter { $0.category == category }
@@ -125,18 +151,29 @@ struct DomuView: View {
                                 .appearReveal(revealed, delay: 0.12)
                         } else {
                             VStack(spacing: 12) {
-                                vehicleScroller
-                                    .appearReveal(revealed, delay: 0.12)
+                                Group {
+                                    if vehicleThings.isEmpty {
+                                        Button { addCategory = .vehicle } label: {
+                                            VehicleWidget(summary: summary(for: .vehicle))
+                                        }
+                                        .buttonStyle(PressableCardStyle())
+                                    } else {
+                                        vehicleScroller
+                                    }
+                                }
+                                .appearReveal(revealed, delay: 0.12)
 
                                 HStack(spacing: 13) {
-                                    smallThingScroller(.pet, addTitle: "Přidat mazlíčka")
-                                    smallThingScroller(.homeMaintenance, addTitle: "Přidat dům")
+                                    assetSmallWidget(.pet, addTitle: "Přidat mazlíčka")
+                                    assetSmallWidget(.homeMaintenance, addTitle: "Přidat dům")
                                 }
                                 .appearReveal(revealed, delay: 0.18)
 
                                 HStack(spacing: 13) {
-                                    smallItemScroller(.document, addTitle: "Přidat doklad")
-                                    smallItemScroller(.other, addTitle: "Přidat další")
+                                    documentWidget
+                                    categoryLink(.other) {
+                                        SmallCategoryWidget(summary: summary(for: .other))
+                                    }
                                 }
                                 .appearReveal(revealed, delay: 0.24)
                             }

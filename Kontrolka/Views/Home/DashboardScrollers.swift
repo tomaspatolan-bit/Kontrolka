@@ -138,53 +138,57 @@ struct VehicleThingContent: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 14) {
-            Image("IllustrationCar")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 110)
-                .accessibilityHidden(true)
+        VStack(alignment: .leading, spacing: 12) {
+            // Řádek s názvem vozidla
+            Text(thing.name)
+                .font(.system(size: 17, weight: .bold))
+                .foregroundStyle(Color.brandTextPrimary)
+                .lineLimit(1)
 
-            VStack(alignment: .leading, spacing: 10) {
-                Text(thing.name)
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(Color.brandTextPrimary)
-                    .lineLimit(1)
+            // Dva sloupce: auto vlevo, výpis termínů vpravo
+            HStack(alignment: .top, spacing: 14) {
+                Image("IllustrationCar")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 104)
+                    .accessibilityHidden(true)
 
-                if items.isEmpty {
-                    Text("Zatím žádný termín")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Color.brandTextSecondary)
-                } else {
-                    VStack(spacing: 8) {
-                        ForEach(items.prefix(4)) { item in
-                            HStack(spacing: 8) {
-                                Circle()
-                                    .fill(item.urgency.color)
-                                    .frame(width: 7, height: 7)
-                                Text(item.title)
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundStyle(Color.brandTextPrimary)
-                                    .lineLimit(1)
-                                Spacer(minLength: 6)
-                                Text(item.compactDeadline)
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundStyle(item.urgency.textColor)
-                                    .lineLimit(1)
+                Group {
+                    if items.isEmpty {
+                        Text("Zatím žádný termín")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color.brandTextSecondary)
+                    } else {
+                        VStack(spacing: 8) {
+                            ForEach(items.prefix(4)) { item in
+                                HStack(spacing: 8) {
+                                    Circle()
+                                        .fill(item.urgency.color)
+                                        .frame(width: 7, height: 7)
+                                    Text(item.title)
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundStyle(Color.brandTextPrimary)
+                                        .lineLimit(1)
+                                    Spacer(minLength: 6)
+                                    Text(item.compactDeadline)
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundStyle(item.urgency.textColor)
+                                        .lineLimit(1)
+                                }
                             }
-                        }
-                        if items.count > 4 {
-                            Text("+\(items.count - 4) dalších")
-                                .font(.system(size: 12))
-                                .foregroundStyle(Color.brandTextSecondary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                            if items.count > 4 {
+                                Text("+\(items.count - 4) dalších")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(Color.brandTextSecondary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
                         }
                     }
                 }
-
-                Spacer(minLength: 0)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
