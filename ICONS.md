@@ -34,6 +34,21 @@ znovu), pak co potřebuju, a nakonec volitelné. Až mi je pošleš, přidám je
 | Kategorie **Pojištění** | `IllustrationInsurance` | kategorie zatím bez ilustrace |
 | Kategorie **Záruka** | `IllustrationWarranty` | kategorie zatím bez ilustrace |
 
+### Ilustrace typů věcí (per-typ, ne jen per-kategorie)
+
+Aby konkrétní věc měla ilustraci podle svého typu (kočka vs. pes, motorka vs. auto), ne jen
+podle kategorie. Vyžaduje i malou úpravu v kódu: pole „typ" na `TrackedThing` + mapování na
+ilustraci — udělám, až budou assety. Výchozí (auto/pes) už máme.
+
+| Kategorie | Typ | Navržený název | Priorita |
+|---|---|---|---|
+| Mazlíček | Pes | `IllustrationPet` | ✅ máme (výchozí) |
+| Mazlíček | Kočka | `IllustrationPetCat` | 🔴 hlavní |
+| Vozidlo | Auto | `IllustrationCar` | ✅ máme (výchozí) |
+| Vozidlo | Motorka | `IllustrationCarMotorcycle` | 🔴 |
+| Vozidlo | Skútr | `IllustrationCarScooter` | 🟡 |
+| Vozidlo | Sporťák | `IllustrationCarSports` | 🟡 |
+
 ### Glyph ikony kategorií (24×24, jednobarevné)
 
 Nahradí SF Symboly v kartách položek a v detailu. Figma stránka **„Ikony"** je už
