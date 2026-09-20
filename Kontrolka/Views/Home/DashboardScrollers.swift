@@ -156,3 +156,96 @@ struct VehicleThingCard: View {
         .shadow(color: .black.opacity(0.06), radius: 15, y: 6)
     }
 }
+
+// MARK: - Ilustrace kategorie
+
+struct CategoryArt: View {
+    let category: Category
+
+    var body: some View {
+        if let name = category.illustrationName {
+            Image(name)
+                .resizable()
+                .scaledToFit()
+                .accessibilityHidden(true)
+        } else {
+            Image(systemName: category.iconName)
+                .font(.system(size: 36))
+                .foregroundStyle(Color.brandAccent)
+                .accessibilityHidden(true)
+        }
+    }
+}
+
+// MARK: - Malá karta věci (mazlíček, domácnost): jméno + nejbližší termín
+
+struct SmallThingCard: View {
+    let thing: TrackedThing
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            CategoryArt(category: thing.category)
+                .frame(maxWidth: .infinity)
+                .frame(height: 64)
+
+            Text(thing.name)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Color.brandTextPrimary)
+                .lineLimit(1)
+
+            if let nearest = thing.nearestItem {
+                HStack(spacing: 5) {
+                    Circle().fill(nearest.urgency.color).frame(width: 7, height: 7)
+                    Text("\(nearest.title) · \(nearest.compactDeadline)")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(nearest.urgency.textColor)
+                        .lineLimit(1)
+                }
+            } else {
+                Text("Zatím žádný termín")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.brandTextSecondary)
+                    .lineLimit(1)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.surfaceCardBase)
+        )
+    }
+}
+
+// MARK: - Malá karta ploché položky (doklad, ostatní): ilustrace + název + termín
+
+struct SmallItemCard: View {
+    let item: TrackedItem
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            CategoryArt(category: item.category)
+                .frame(maxWidth: .infinity)
+                .frame(height: 64)
+
+            Text(item.title)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Color.brandTextPrimary)
+                .lineLimit(1)
+
+            HStack(spacing: 5) {
+                Circle().fill(item.urgency.color).frame(width: 7, height: 7)
+                Text(item.compactDeadline)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(item.urgency.textColor)
+                    .lineLimit(1)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.surfaceCardBase)
+        )
+    }
+}

@@ -80,9 +80,6 @@ struct CategoryDetailView: View {
         .navigationTitle(category.widgetTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
-        .navigationDestination(for: TrackedItem.self) { item in
-            ItemDetailView(item: item, modelContext: modelContext)
-        }
         .sheet(isPresented: $showingAdd) {
             AddEditItemView(modelContext: modelContext, initialCategory: category, itemToEdit: nil)
         }

@@ -58,6 +58,32 @@ struct DomuView: View {
         }
     }
 
+    // Malý scroller přes věci kategorie (mazlíček, domácnost).
+    private func smallThingScroller(_ category: Category, addTitle: String) -> some View {
+        let categoryThings = allThings.filter { $0.category == category }
+        return WrapScroller(realCount: categoryThings.count, height: 150) { idx in
+            NavigationLink(value: categoryThings[idx]) {
+                SmallThingCard(thing: categoryThings[idx])
+            }
+            .buttonStyle(.plain)
+        } addPage: {
+            addCard(category, title: addTitle)
+        }
+    }
+
+    // Malý scroller přes ploché položky kategorie (doklad, ostatní).
+    private func smallItemScroller(_ category: Category, addTitle: String) -> some View {
+        let categoryItems = items.filter { $0.category == category }
+        return WrapScroller(realCount: categoryItems.count, height: 150) { idx in
+            NavigationLink(value: categoryItems[idx]) {
+                SmallItemCard(item: categoryItems[idx])
+            }
+            .buttonStyle(.plain)
+        } addPage: {
+            addCard(category, title: addTitle)
+        }
+    }
+
     // „Přidat" dlaždice (poslední strana scrolleru) — otevře přidání dané kategorie.
     private func addCard(_ category: Category, title: String) -> some View {
         Button {
@@ -114,22 +140,14 @@ struct DomuView: View {
                                     .appearReveal(revealed, delay: 0.12)
 
                                 HStack(spacing: 13) {
-                                    categoryLink(.pet) {
-                                        SmallCategoryWidget(summary: summary(for: .pet))
-                                    }
-                                    categoryLink(.homeMaintenance) {
-                                        SmallCategoryWidget(summary: summary(for: .homeMaintenance))
-                                    }
+                                    smallThingScroller(.pet, addTitle: "Přidat mazlíčka")
+                                    smallThingScroller(.homeMaintenance, addTitle: "Přidat dům")
                                 }
                                 .appearReveal(revealed, delay: 0.18)
 
                                 HStack(spacing: 13) {
-                                    categoryLink(.document) {
-                                        SmallCategoryWidget(summary: summary(for: .document))
-                                    }
-                                    categoryLink(.other) {
-                                        SmallCategoryWidget(summary: summary(for: .other))
-                                    }
+                                    smallItemScroller(.document, addTitle: "Přidat doklad")
+                                    smallItemScroller(.other, addTitle: "Přidat další")
                                 }
                                 .appearReveal(revealed, delay: 0.24)
                             }
@@ -146,6 +164,9 @@ struct DomuView: View {
             }
             .navigationDestination(for: TrackedThing.self) { thing in
                 ThingDetailView(thing: thing, modelContext: modelContext)
+            }
+            .navigationDestination(for: TrackedItem.self) { item in
+                ItemDetailView(item: item, modelContext: modelContext)
             }
             .sheet(item: $addCategory) { category in
                 AddEditItemView(modelContext: modelContext, initialCategory: category)

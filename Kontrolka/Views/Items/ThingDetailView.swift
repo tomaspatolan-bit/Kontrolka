@@ -59,9 +59,6 @@ struct ThingDetailView: View {
         .navigationTitle(thing.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
-        .navigationDestination(for: TrackedItem.self) { item in
-            ItemDetailView(item: item, modelContext: modelContext)
-        }
         .sheet(isPresented: $showingAdd) {
             AddEditItemView(modelContext: modelContext, existingThing: thing)
         }
