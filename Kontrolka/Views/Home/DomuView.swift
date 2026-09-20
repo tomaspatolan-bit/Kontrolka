@@ -27,6 +27,8 @@ struct DomuView: View {
     @State private var revealed = false
     @State private var addCategory: Category?
     @State private var addDeadlineRequest: AddDeadlineRequest?
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var notificationsDenied = false
     private static var hasRevealedOnce = false
 
     // Pevné výšky widgetů — prázdné i plné (s tečkami) musí mít stejnou výšku.
@@ -147,6 +149,11 @@ struct DomuView: View {
                             .accessibilityLabel("Kontrolka")
                             .appearReveal(revealed, delay: 0)
 
+                        if notificationsDenied {
+                            notificationBanner
+                                .appearReveal(revealed, delay: 0.03)
+                        }
+
                         Group {
                             if let person = primaryPersons.first {
                                 NavigationLink(value: person) {
@@ -214,7 +221,48 @@ struct DomuView: View {
                 AddEditItemView(modelContext: modelContext, existingThing: request.thing, preselectedDeadline: request.type)
             }
             .onAppear(perform: triggerReveal)
+            .task { await refreshNotificationStatus() }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active {
+                    Task { await refreshNotificationStatus() }
+                }
+            }
         }
+    }
+
+    private func refreshNotificationStatus() async {
+        notificationsDenied = await NotificationManager.shared.authorizationStatus() == .denied
+    }
+
+    // Varování, když jsou notifikace odepřené — jinak by appka „hlídala potichu".
+    private var notificationBanner: some View {
+        Link(destination: URL(string: UIApplication.openSettingsURLString)!) {
+            HStack(spacing: 12) {
+                Image(systemName: "bell.slash.fill")
+                    .font(.system(size: 18))
+                    .foregroundStyle(Color.urgencyWarningText)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Notifikace jsou vypnuté")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.brandTextPrimary)
+                    Text("Bez nich tě na termíny neupozorníme. Klepni pro zapnutí.")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.brandTextSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.brandTextSecondary)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.urgencyWarningFill.opacity(0.18))
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     private func triggerReveal() {

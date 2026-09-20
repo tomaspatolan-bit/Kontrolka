@@ -21,6 +21,11 @@ final class NotificationManager {
             return false
         }
     }
+
+    /// Aktuální stav oprávnění k notifikacím (pro varování, když jsou odepřené).
+    func authorizationStatus() async -> UNAuthorizationStatus {
+        await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+    }
     
     func scheduleNotifications(for item: TrackedItem) async {
         // Zrušit staré notifikace pro tuto položku
