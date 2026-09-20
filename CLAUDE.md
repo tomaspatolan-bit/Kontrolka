@@ -1,7 +1,8 @@
 # CLAUDE.md
 
-Pravidla a invarianty pro práci na aplikaci **Kontrolka**. Tady jsou jen pravidla,
-ne popis jednotlivých views a polí — ten je v [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md).
+Pravidla a invarianty pro práci na aplikaci **Kontrolka**. Tady jsou jen pravidla; mapa projektu
+(struktura, flows, „kde měnit co") je v [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) a detailní
+popis modelu/views v [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md).
 
 ## Tech stack
 

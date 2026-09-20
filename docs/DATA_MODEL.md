@@ -1,7 +1,8 @@
 # Datový model a views
 
-Detailní referenční popis modelu, pomocných typů, managerů a obrazovek. Pravidla
-a invarianty, které je nutné dodržovat, jsou v [`CLAUDE.md`](../CLAUDE.md) v rootu.
+Detailní referenční popis modelu, pomocných typů, managerů a obrazovek. Vysokoúrovňová mapa
+projektu (struktura složek, flows, „kde měnit co") je v [`ARCHITECTURE.md`](ARCHITECTURE.md);
+pravidla a invarianty v [`CLAUDE.md`](../CLAUDE.md) v rootu.
 
 Zdroj pravdy je vždy kód (`Kontrolka/**/*.swift`). Tento dokument ho shrnuje, ale při
 rozporu platí kód — v tom případě aktualizuj tento soubor.
@@ -17,19 +18,22 @@ Soubor: `Kontrolka/Models/Item.swift`
 | `id` | `UUID` | Unikátní identifikátor. Používá se jako klíč notifikací (`userInfo["itemId"]`). |
 | `title` | `String` | Název položky (např. „STK - Škoda Octavia"). Povinné, nesmí být prázdné. |
 | `category` | `Category` | Kategorie z enumu níže. Určuje výchozí kadenci notifikací. |
+| `subcategory` | `String?` | Volitelná podkategorie / štítek (např. „STK"). |
 | `dueDate` | `Date` | Datum vypršení lhůty. |
 | `note` | `String?` | Volitelná poznámka. |
 | `photoData` | `Data?` | Volitelná fotka dokladu uložená přímo v SwiftData (bez komprese). |
 | `customReminderDays` | `[Int]?` | Vlastní kadence notifikací; přepíše default kategorie. UI pro editaci zatím není. |
 | `createdAt` | `Date` | Datum vytvoření. |
 | `updatedAt` | `Date` | Datum poslední úpravy. Ručně aktualizované při každé editaci. |
+| `thing` | `TrackedThing?` | Rodičovská věc u asset kategorií (Vozidlo/Domácnost/Mazlíček); jinak `nil`. |
 
-**Computed / extension properties:**
+**Computed / extension properties** (`TrackedItemHelpers.swift`):
 
 - `reminderDays: [Int]` — vrací `customReminderDays ?? category.defaultReminderDays`.
-- `urgency: Urgency` — spočítá se z počtu zbývajících dní (viz níže). Extension v `TrackedItemHelpers.swift`.
-- `dueDateFormatted: String` — lokalizovaný český text („Vyprší zítra", „Vyprší za X dní",
-  „Vypršelo před X dny", nebo konkrétní datum pro > 30 dní). Extension v `TrackedItemHelpers.swift`.
+- `urgency: Urgency` — spočítá se z počtu zbývajících dní (viz níže).
+- `dueDateFormatted: String` — český text („Vyprší zítra", „za X dní", „Vypršelo…", nebo datum pro > 30 dní).
+- `shortDeadline` / `compactDeadline: String` — kompaktní formáty pro karty/widgety.
+  `compactDeadline`: do 30 dní počet dní, jinak přímo datum.
 
 ---
 
@@ -48,6 +52,28 @@ Soubor: `Kontrolka/Models/Item.swift`. RawValue je český název zobrazovaný v
 
 Kritické kategorie (`.vehicle`, `.insurance`, `.homeMaintenance`) mají trojitou kadenci
 30/7/1 dní; ostatní jen 7 dní předem.
+
+Další rozšíření `Category` (`Item.swift` / `TrackedItemHelpers.swift`):
+- `usesThings: Bool` — `true` pro **asset kategorie** (Vozidlo/Domácnost/Mazlíček) → hierarchie
+  věc→termíny (viz `TrackedThing`); ostatní jsou ploché.
+- `subcategorySuggestions: [String]` — návrhy podkategorií/termínů per kategorie (chips v add flow).
+- `illustrationName` / `iconName` / `widgetTitle` — vizuál pro widgety/karty.
+
+---
+
+## `TrackedThing` (SwiftData `@Model`)
+
+Soubor: `Kontrolka/Models/TrackedThing.swift`. „Věc" u asset kategorií — např. konkrétní auto.
+
+| Pole | Typ | Poznámka |
+|------|-----|----------|
+| `id` | `UUID` | Identifikátor. |
+| `name` | `String` | Název věci (např. „Škoda Octavia"). |
+| `category` | `Category` | Kategorie věci (asset). |
+| `createdAt` | `Date` | Datum vytvoření. |
+| `items` | `[TrackedItem]` | Termíny věci. `@Relationship(deleteRule: .cascade)` — smazání věci smaže i termíny. |
+
+- `nearestItem: TrackedItem?` — nejbližší termín (pro souhrn ve widgetu/kartě).
 
 ---
 
@@ -77,6 +103,8 @@ Soubor: `Kontrolka/Managers/NotificationManager.swift`. `@MainActor`, singleton 
   novou sadu podle `item.reminderDays`. Přeskočí termíny v minulosti. Identifikátor notifikace je
   `"\(id)-\(daysBeforeDue)"`, `userInfo["itemId"]` = `id.uuidString`.
 - `cancelNotifications(for:) async` — najde pending requesty podle `userInfo["itemId"]` a odstraní je.
+- `enforceGlobalLimit(max:)` — po naplánování drží globálně ~60 nejbližších notifikací (iOS strop 64);
+  nejvzdálenější ořezává, takže bližší termíny mají přednost (mírný centrální scheduler).
 - `cancelAllNotifications()` — zruší úplně všechno (debug/reset).
 
 **Text notifikací** je věcný, ne marketingový:
@@ -102,9 +130,12 @@ vyfotit doklad) → `AddEditItemView`. Uvnitř tabů je navigace `NavigationStac
 Onboarding (`OnboardingView`) běží před shellem a v posledním kroku nechá uživatele přidat první položku.
 
 ### `DomuView` (tab Domů)
-Soubor: `Kontrolka/Views/Home/DomuView.swift`. Dashboard s uvítací kartou a widgety kategorií
-(vozidlo jako featured + mřížka ostatních). Prázdný stav = pozvánka: mřížka kategorií s ilustracemi,
-ťuknutí otevře `AddEditItemView` s předvybranou kategorií. Push do `CategoryDetailView`.
+Soubor: `Kontrolka/Views/Home/DomuView.swift` (+ `DashboardScrollers.swift`). Dashboard: uvítací karta
++ widgety kategorií. **Neprázdná** kategorie = `WrapScroller` (stránkuje věci/položky uvnitř rámečku,
+tečky + „přidat" stránka); **prázdná** = default widget s ilustrací (klepnutím přidáš). Karusel: vozidlo
+(velká karta: název + 2 sloupce), mazlíček/dům (věci), doklad (položky); Ostatní = bez karuselu.
+Celoprázdný dashboard = pozvánková mřížka. Navigační destinace `Category`/`TrackedThing`/`TrackedItem`
+jsou zde (v rootu stacku).
 
 ### `ContentView` (tab Přehled)
 Soubor: `Kontrolka/Views/Home/ContentView.swift`. Seznam všech termínů.
@@ -114,12 +145,13 @@ Soubor: `Kontrolka/Views/Home/ContentView.swift`. Seznam všech termínů.
 - Push do `ItemDetailView`. Přidávání jde přes „+" v tab baru, ne z této obrazovky.
 
 ### `AddEditItemView`
-Soubor: `Kontrolka/Views/Items/AddEditItemView.swift`. Přidání i editace (modal sheet).
-- Parametry: `modelContext`, volitelně `initialCategory` (předvybraná kategorie), `initialPhotoData`
-  (fotka z kamery), `itemToEdit` (`nil` = přidání) a `onSaved` (callback po uložení — když je nastaven,
-  převezme řízení místo `dismiss()`; využívá ho onboarding).
-- Pole: název (povinné), kategorie (Picker), datum (DatePicker), poznámka, fotka (`PhotosPicker`).
-- Náhled fotky s možností smazání. „Uložit" je disabled, dokud je název prázdný.
+Soubor: `Kontrolka/Views/Items/AddEditItemView.swift`. Přidání i editace (modal sheet), **adaptivní**:
+- **Nová věc** (asset kategorie, `itemToEdit==nil`): název věci + multi-chip termínů, každý s datem →
+  `TrackedThing` + jedna položka na termín.
+- **Termín k existující věci** (`existingThing != nil`): jen multi-chip termínů → položky pod tu věc.
+- **Plochá položka / editace**: název, kategorie, datum, podkategorie (chips), poznámka, fotka.
+- Parametry: `modelContext`, `initialCategory`, `initialPhotoData`, `itemToEdit`, `existingThing`, `onSaved`
+  (callback po uložení — přebírá řízení místo `dismiss()`, využívá onboarding).
 
 ### `ItemDetailView`
 Soubor: `Kontrolka/Views/Items/ItemDetailView.swift`. Detail položky.
@@ -128,17 +160,21 @@ Soubor: `Kontrolka/Views/Items/ItemDetailView.swift`. Detail položky.
 - Akce: Upravit (otevře `AddEditItemView` v edit módu), Smazat (s confirmation alertem),
   Přidat do kalendáře (EventKit s error/success alerty).
 
-**Struktura zdrojáků** (`Kontrolka/`): `App/` (KontrolkaApp, MainTabView), `Models/` (Item,
-TrackedItemHelpers, Profile), `Managers/` (Notification, Calendar), `DesignSystem/` (BrandColors,
-Motion), `Views/{Onboarding,Home,Items,Profile}/` a `Support/` (Examples). Další views: DomuView
-(Home), OnboardingView/OnboardingShowcase, ProfileEditView, CategoryDetailView, TrackedItemCardView,
-CameraCaptureView (vše ve `Views/…`).
+### `ThingDetailView`
+Soubor: `Kontrolka/Views/Items/ThingDetailView.swift`. Detail věci: hero + seznam termínů (→ `ItemDetailView`),
+„Přidat termín" (`AddEditItemView(existingThing:)`), „Smazat věc" (zruší notifikace všech termínů + cascade).
+
+### `CategoryDetailView`
+Soubor: `Kontrolka/Views/Items/CategoryDetailView.swift`. Asset kategorie → seznam věcí (`ThingRowCard` →
+`ThingDetailView`); ploché kategorie → seznam položek. Z Domů dostupný přes „Ostatní" widget.
+
+**Struktura složek** a mapa „kde měnit co" je v [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ---
 
 ## Limity a omezení
 
 - **SwiftData:** fotky se ukládají jako `Data` bez komprese; není optimalizováno pro tisíce položek.
-- **Notifikace:** iOS limit 64 naplánovaných notifikací na aplikaci. Bez centrálního batchingu se
-  při hodně položkách limit vyčerpá (viz seznam „mimo MVP" v `CLAUDE.md`).
+- **Notifikace:** iOS limit 64 naplánovaných notifikací na aplikaci. `NotificationManager.enforceGlobalLimit`
+  drží ~60 nejbližších (bližší termíny mají přednost), takže se nadlimitní notifikace tiše nezahazují.
 - **Kalendář:** vyžaduje defaultní kalendář; opakovaný export vytváří duplicity.
