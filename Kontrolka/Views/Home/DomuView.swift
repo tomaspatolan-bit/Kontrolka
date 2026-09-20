@@ -442,20 +442,30 @@ struct GreetingCard: View {
     }
 
     private func docChip(_ doc: TrackedItem) -> some View {
-        HStack(spacing: 5) {
-            Circle().fill(doc.urgency.color).frame(width: 6, height: 6)
-            Text(doc.title)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Color.brandTextPrimary)
-                .lineLimit(1)
-            Text("· \(doc.compactDeadline)")
-                .font(.system(size: 12))
-                .foregroundStyle(doc.urgency.textColor)
-                .lineLimit(1)
+        HStack(spacing: 8) {
+            // Sloupec 1: ikona dokladu
+            Image(systemName: "person.text.rectangle.fill")
+                .font(.system(size: 18))
+                .foregroundStyle(Color.brandAccent)
+
+            // Sloupec 2: typ dokladu + datum platnosti (bez indikace, za jak dlouho vyprší)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(doc.title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.brandTextPrimary)
+                    .lineLimit(1)
+                Text(doc.dueDate.formatted(date: .numeric, time: .omitted))
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.brandTextSecondary)
+                    .lineLimit(1)
+            }
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(Capsule().fill(Color.white.opacity(0.7)))
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.white.opacity(0.7))
+        )
     }
 }
 
