@@ -25,10 +25,20 @@ extension Category {
 
 struct TrackedItemCardView: View {
     let item: TrackedItem
+    /// V Přehledu ukazuje kontext vlastníka (název věci / „Doklad"), jinak kategorie·podkategorie.
+    var showsContext: Bool = false
     @Environment(\.colorScheme) private var colorScheme
 
     private var urgencyColor: Color { item.urgency.color }
     private var urgencyTextColor: Color { item.urgency.textColor }
+
+    private var subtitleText: String {
+        if showsContext {
+            if let thing = item.thing { return thing.name }
+            if item.person != nil { return "Doklad" }
+        }
+        return item.subcategory.map { "\(item.category.rawValue) · \($0)" } ?? item.category.rawValue
+    }
 
     var body: some View {
         HStack(spacing: 14) {
@@ -40,7 +50,7 @@ struct TrackedItemCardView: View {
                     .font(.headline)
                     .lineLimit(1)
 
-                Text(item.subcategory.map { "\(item.category.rawValue) · \($0)" } ?? item.category.rawValue)
+                Text(subtitleText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)

@@ -2,12 +2,8 @@
 //  ContentView.swift
 //  Kontrolka
 //
-//  Hlavní seznam položek — nyní jako karty (TrackedItemCardView).
-//  Přidávání položek se přesunulo do MainTabView (prostřední tlačítko v bottom
-//  baru), proto tu už není toolbar tlačítko "+".
-//
-//  ⚠️ Rekonstruováno podle CLAUDE_CONTEXT.md, neměl jsem tvůj skutečný soubor —
-//  slouč s původní verzí, ať nepřijdeš o drobnosti, co tu nejsou popsané.
+//  Tab Přehled: chronologický seznam všech termínů (nejbližší první) jako karty
+//  s kontextem vlastníka (název věci / „Doklad"). Přidávání jde přes „+" v tab baru.
 //
 
 import SwiftUI
@@ -47,7 +43,7 @@ struct ContentView: View {
                                 .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 4, trailing: 16))
 
                             ForEach(items) { item in
-                                TrackedItemCardView(item: item)
+                                TrackedItemCardView(item: item, showsContext: true)
                                     .overlay {
                                         // Neviditelný NavigationLink — řádek není disclosure-row,
                                         // takže se neukáže systémová šipka (vlastní šipka je v kartě).
@@ -97,19 +93,25 @@ struct PrehledSummaryCard: View {
     let total: Int
     let soon: Int
 
+    private func termWord(_ n: Int) -> String {
+        if n == 1 { return "termín" }
+        if (2...4).contains(n) { return "termíny" }
+        return "termínů"
+    }
+
     private var subtitle: String {
         if soon == 0 {
             return "Vše je v klidu, žádný termín nehoří."
         } else if soon == 1 {
-            return "Jedna věc potřebuje pozornost brzy, zbytek je klidný."
+            return "Jeden termín potřebuje pozornost brzy, zbytek je klidný."
         } else {
-            return "\(soon) věci potřebují pozornost brzy."
+            return "\(soon) \(soon < 5 ? "termíny potřebují" : "termínů potřebuje") pozornost brzy."
         }
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("\(total) \(total == 1 ? "věc sledována" : "věcí sledováno")")
+            Text("Sleduješ \(total) \(termWord(total))")
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(Color.brandTextPrimary)
             Text(subtitle)
