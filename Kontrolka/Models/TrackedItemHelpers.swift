@@ -64,6 +64,16 @@ extension TrackedItem {
         return "za \(days) dní"
     }
 
+    /// Sloupcový formát pro karty: do 30 dní počet dní, jinak přímo datum.
+    var compactDeadline: String {
+        let days = Calendar.current.dateComponents([.day], from: Date(), to: dueDate).day ?? 0
+        if days < 0 { return "po termínu" }
+        if days == 0 { return "dnes" }
+        if days == 1 { return "zítra" }
+        if days <= 30 { return "za \(days) dní" }
+        return dueDate.formatted(date: .abbreviated, time: .omitted)
+    }
+
     var urgency: Urgency {
         let daysRemaining = Calendar.current.dateComponents([.day], from: Date(), to: dueDate).day ?? 0
         

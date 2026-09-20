@@ -46,6 +46,44 @@ struct DomuView: View {
         allThings.filter { $0.category == .vehicle }
     }
 
+    // Hlavní widget vozidel: wrap scroll přes věci + „přidat" dlaždice na konci.
+    private var vehicleScroller: some View {
+        WrapScroller(realCount: vehicleThings.count, height: 184) { idx in
+            NavigationLink(value: vehicleThings[idx]) {
+                VehicleThingCard(thing: vehicleThings[idx])
+            }
+            .buttonStyle(.plain)
+        } addPage: {
+            addCard(.vehicle, title: "Přidat vozidlo")
+        }
+    }
+
+    // „Přidat" dlaždice (poslední strana scrolleru) — otevře přidání dané kategorie.
+    private func addCard(_ category: Category, title: String) -> some View {
+        Button {
+            addCategory = category
+        } label: {
+            VStack(spacing: 10) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 34))
+                    .foregroundStyle(Color.brandAccent)
+                Text(title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color.brandAccent)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.surfaceCardBase)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(Color.brandAccent.opacity(0.4), style: StrokeStyle(lineWidth: 1.5, dash: [6]))
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -72,14 +110,8 @@ struct DomuView: View {
                                 .appearReveal(revealed, delay: 0.12)
                         } else {
                             VStack(spacing: 12) {
-                                Group {
-                                    if vehicleThings.isEmpty {
-                                        inviteFeatured(.vehicle)
-                                    } else {
-                                        VehicleThingsWidget(things: vehicleThings)
-                                    }
-                                }
-                                .appearReveal(revealed, delay: 0.12)
+                                vehicleScroller
+                                    .appearReveal(revealed, delay: 0.12)
 
                                 HStack(spacing: 13) {
                                     categoryLink(.pet) {
@@ -323,12 +355,6 @@ struct GreetingCard: View {
             }
 
             Spacer(minLength: 0)
-
-            Image("IllustrationPerson")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 40, height: 96)
-                .accessibilityHidden(true)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
@@ -408,114 +434,6 @@ struct VehicleWidget: View {
                 .fill(Color.surfaceCardBase)
         )
         .shadow(color: .black.opacity(0.06), radius: 15, y: 6)
-    }
-}
-
-// MARK: - Vozidla (horizontální „nekonečný" wrap scroll přes věci)
-
-struct VehicleThingsWidget: View {
-    let things: [TrackedThing]
-    @State private var scrollPos: Int?
-
-    // Velký virtuální rozsah pro wrap dokola; reálná věc = index % počet.
-    private let virtualCount = 10_000
-
-    private var activeIndex: Int {
-        guard !things.isEmpty else { return 0 }
-        return (((scrollPos ?? 0) % things.count) + things.count) % things.count
-    }
-
-    var body: some View {
-        VStack(spacing: 12) {
-            HStack {
-                Text(things.count == 1 ? "Vaše vozidlo" : "Vaše vozidla")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color.brandTextPrimary)
-                Spacer()
-                Text("\(things.count) \(vozidloWord(things.count))")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Color.brandTextSecondary)
-            }
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: 0) {
-                    ForEach(0..<virtualCount, id: \.self) { i in
-                        card(for: things[i % things.count])
-                            .containerRelativeFrame(.horizontal)
-                            .id(i)
-                    }
-                }
-                .scrollTargetLayout()
-            }
-            .scrollTargetBehavior(.paging)
-            .scrollPosition(id: $scrollPos)
-            .frame(height: 176)
-
-            if things.count > 1 {
-                HStack(spacing: 6) {
-                    ForEach(0..<things.count, id: \.self) { i in
-                        Circle()
-                            .fill(i == activeIndex ? Color.brandAccent : Color.brandTextSecondary.opacity(0.3))
-                            .frame(width: 7, height: 7)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .animation(.snappy, value: activeIndex)
-            }
-        }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.surfaceCardBase)
-        )
-        .shadow(color: .black.opacity(0.06), radius: 15, y: 6)
-        .onAppear {
-            guard scrollPos == nil, !things.isEmpty else { return }
-            let mid = virtualCount / 2
-            scrollPos = mid - (mid % things.count) // začni na první věci uprostřed rozsahu
-        }
-    }
-
-    @ViewBuilder
-    private func card(for thing: TrackedThing) -> some View {
-        NavigationLink(value: thing) {
-            VStack(spacing: 8) {
-                Image("IllustrationCar")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 110)
-                    .frame(maxWidth: .infinity)
-                    .accessibilityHidden(true)
-
-                Text(thing.name)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color.brandTextPrimary)
-                    .lineLimit(1)
-
-                if let nearest = thing.nearestItem {
-                    HStack(spacing: 6) {
-                        Circle().fill(nearest.urgency.color).frame(width: 7, height: 7)
-                        Text("\(nearest.title) · \(nearest.shortDeadline)")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(nearest.urgency.textColor)
-                            .lineLimit(1)
-                    }
-                } else {
-                    Text("Zatím žádný termín")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Color.brandTextSecondary)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, 4)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func vozidloWord(_ n: Int) -> String {
-        if n == 1 { return "vozidlo" }
-        if (2...4).contains(n) { return "vozidla" }
-        return "vozidel"
     }
 }
 
