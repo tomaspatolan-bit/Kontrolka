@@ -78,6 +78,9 @@ final class TrackedItem {
     // Vlastník u osobních dokladů (kategorie Doklad); jinak nil.
     var person: Person?
 
+    // ID exportované události v kalendáři (dedup — opakovaný export aktualizuje, nevytváří duplicitu).
+    var calendarEventID: String?
+
     init(
         id: UUID = UUID(),
         title: String,
@@ -89,6 +92,7 @@ final class TrackedItem {
         customReminderDays: [Int]? = nil,
         thing: TrackedThing? = nil,
         person: Person? = nil,
+        calendarEventID: String? = nil,
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -102,6 +106,7 @@ final class TrackedItem {
         self.customReminderDays = customReminderDays
         self.thing = thing
         self.person = person
+        self.calendarEventID = calendarEventID
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }

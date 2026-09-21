@@ -19,6 +19,7 @@ struct ItemDetailView: View {
     @State private var showingCalendarSuccess = false
     @State private var showingCalendarError = false
     @State private var calendarErrorMessage = ""
+    @State private var calendarSuccessMessage = ""
     
     var body: some View {
         ZStack {
@@ -56,10 +57,10 @@ struct ItemDetailView: View {
         } message: {
             Text("Tuto akci nelze vrátit zpět.")
         }
-        .alert("Přidáno do kalendáře", isPresented: $showingCalendarSuccess) {
+        .alert("Kalendář", isPresented: $showingCalendarSuccess) {
             Button("OK") {}
         } message: {
-            Text("Položka byla úspěšně přidána do systémového kalendáře.")
+            Text(calendarSuccessMessage)
         }
         .alert("Chyba", isPresented: $showingCalendarError) {
             Button("OK") {}
@@ -215,7 +216,11 @@ struct ItemDetailView: View {
         }
         
         do {
-            try await CalendarManager.shared.exportToCalendar(item: item)
+            let result = try await CalendarManager.shared.exportToCalendar(item: item)
+            try? modelContext.save()
+            calendarSuccessMessage = result == .updated
+                ? "Událost v kalendáři byla aktualizována (žádná duplicita)."
+                : "Položka byla přidána do systémového kalendáře."
             showingCalendarSuccess = true
         } catch {
             calendarErrorMessage = "Nepodařilo se přidat položku do kalendáře."
